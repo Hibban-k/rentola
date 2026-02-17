@@ -4,28 +4,11 @@
 
 const API_BASE = "";
 
-// Helper to get auth token
-const getToken = (): string | null => {
-    if (typeof window !== "undefined") {
-        return localStorage.getItem("token");
-    }
-    return null;
-};
-
 // Helper to build headers
-const getHeaders = (authenticated = false): HeadersInit => {
-    const headers: HeadersInit = {
+const getHeaders = (): HeadersInit => {
+    return {
         "Content-Type": "application/json",
     };
-
-    if (authenticated) {
-        const token = getToken();
-        if (token) {
-            headers["Authorization"] = `Bearer ${token}`;
-        }
-    }
-
-    return headers;
 };
 
 // Generic API response type
@@ -37,14 +20,13 @@ interface ApiResponse<T> {
 // Generic fetch wrapper
 async function apiFetch<T>(
     endpoint: string,
-    options: RequestInit = {},
-    authenticated = false
+    options: RequestInit = {}
 ): Promise<ApiResponse<T>> {
     try {
         const res = await fetch(`${API_BASE}${endpoint}`, {
             ...options,
             headers: {
-                ...getHeaders(authenticated),
+                ...getHeaders(),
                 ...options.headers,
             },
         });
@@ -52,7 +34,7 @@ async function apiFetch<T>(
         const data = await res.json();
 
         if (!res.ok) {
-            return { error: data.error || "Request failed" };
+            return { error: data.error || data.message || "Request failed" };
         }
 
         return { data };
@@ -69,17 +51,12 @@ export interface SignupPayload {
     name: string;
     email: string;
     password: string;
-   role: "user" | "provider"; 
-   imageurl?:string;
-   documents?:{
-    type:string;
-    url:string;
-   }[];
-}
-
-export interface SigninPayload {
-    email: string;
-    password: string;
+    role: "user" | "provider";
+    imageurl?: string;
+    documents?: {
+        type: string;
+        url: string;
+    }[];
 }
 
 export interface AuthResponse {
@@ -94,44 +71,12 @@ export interface AuthResponse {
 }
 
 export const authApi = {
+    // Signup new user (NextAuth handles signin)
     signup: (payload: SignupPayload) =>
         apiFetch<AuthResponse>("/api/auth/signup", {
             method: "POST",
             body: JSON.stringify(payload),
         }),
-
-    signin: (payload: SigninPayload) =>
-        apiFetch<AuthResponse>("/api/auth/signin", {
-            method: "POST",
-            body: JSON.stringify(payload),
-        }),
-
-    // Get current user from token
-    getCurrentUser: () => {
-        const token = getToken();
-        if (!token){
-            throw new Error("UNAUTHENTICATED");
-        };
-
-        try {
-            const payload = JSON.parse(atob(token.split(".")[1]));
-            return {
-                userId: payload.userId,
-                role: payload.role as "user" | "provider" | "admin",
-                providerStatus: payload.providerStatus as "pending" | "approved" | "rejected",
-            };
-        } catch {
-            throw new Error("INVALID_TOKEN");
-        }
-    },
-
-    logout: () => {
-        if (typeof window !== "undefined") {
-            localStorage.removeItem("token");
-        }
-    },
-
-    isLoggedIn: () => !!getToken(),
 };
 
 // ============================================
@@ -206,7 +151,7 @@ export interface CreateRentalPayload {
 export const rentalsApi = {
     // Get user's rentals
     list: () =>
-        apiFetch<{ rentals: Rental[] }>("/api/users/rentals", {}, true),
+        apiFetch<{ rentals: Rental[] }>("/api/users/rentals"),
 
     // Create a new rental
     create: (payload: CreateRentalPayload) =>
@@ -215,8 +160,7 @@ export const rentalsApi = {
             {
                 method: "POST",
                 body: JSON.stringify(payload),
-            },
-            true
+            }
         ),
 };
 
@@ -235,11 +179,11 @@ export interface CreateVehiclePayload {
 export const providerApi = {
     // Get provider's vehicles
     getVehicles: () =>
-        apiFetch<{ vehicles: Vehicle[] }>("/api/provider/vehicles", {}, true),
+        apiFetch<{ vehicles: Vehicle[] }>("/api/provider/vehicles"),
 
     // Get single vehicle
     getVehicle: (id: string) =>
-        apiFetch<{ vehicle: Vehicle }>(`/api/provider/vehicles/${id}`, {}, true),
+        apiFetch<{ vehicle: Vehicle }>(`/api/provider/vehicles/${id}`),
 
     // Create a vehicle
     createVehicle: (payload: CreateVehiclePayload) =>
@@ -248,8 +192,7 @@ export const providerApi = {
             {
                 method: "POST",
                 body: JSON.stringify(payload),
-            },
-            true
+            }
         ),
 
     // Update vehicle (availability, etc.)
@@ -259,8 +202,30 @@ export const providerApi = {
             {
                 method: "PATCH",
                 body: JSON.stringify(updates),
-            },
-            true
+            }
+        ),
+
+    // Delete vehicle
+    deleteVehicle: (id: string) =>
+        apiFetch<{ success: boolean; message: string }>(
+            `/api/provider/vehicles/${id}`,
+            {
+                method: "DELETE",
+            }
+        ),
+
+    // Get provider's bookings/rentals
+    getRentals: () =>
+        apiFetch<Rental[]>("/api/provider/rentals"),
+
+    // Update rental status (accept/reject/cancel)
+    updateRentalStatus: (id: string, status: Rental["status"]) =>
+        apiFetch<Rental>(
+            `/api/provider/rentals/${id}`,
+            {
+                method: "PATCH",
+                body: JSON.stringify({ status }),
+            }
         ),
 };
 
@@ -281,8 +246,32 @@ export const adminApi = {
     // Get all providers
     getProviders: (status?: "pending" | "approved" | "rejected") => {
         const query = status ? `?status=${status}` : "";
-        return apiFetch<{ providers: Provider[] }>(`/api/admin/providers${query}`, {}, true);
+        return apiFetch<Provider[]>(`/api/admin/providers${query}`);
     },
+
+    // Approve provider
+    approveProvider: (id: string) =>
+        apiFetch<{ success: boolean; user: Provider }>(
+            `/api/admin/providers/${id}`,
+            {
+                method: "PATCH",
+                body: JSON.stringify({ providerStatus: "approved" }),
+            }
+        ),
+
+    // Reject provider
+    rejectProvider: (id: string) =>
+        apiFetch<{ success: boolean; user: Provider }>(
+            `/api/admin/providers/${id}`,
+            {
+                method: "PATCH",
+                body: JSON.stringify({ providerStatus: "rejected" }),
+            }
+        ),
+
+    // Get single provider
+    getProvider: (id: string) =>
+        apiFetch<Provider>(`/api/admin/providers/${id}`),
 
     // Update provider status
     updateProviderStatus: (id: string, providerStatus: "approved" | "rejected") =>
@@ -291,9 +280,19 @@ export const adminApi = {
             {
                 method: "PATCH",
                 body: JSON.stringify({ providerStatus }),
-            },
-            true
+            }
         ),
+
+    getUsers: () =>
+        apiFetch<{ users: { _id: string; name: string; email: string; role: "user" | "provider" | "admin"; providerStatus?: "pending" | "approved" | "rejected" }[] }>("/api/admin/users"),
+
+    // Get all rentals (admin)
+    getAllRentals: () =>
+        apiFetch<Rental[]>("/api/admin/rentals"),
+
+    // Get single rental (admin)
+    getRental: (id: string) =>
+        apiFetch<{ rental: Rental }>(`/api/admin/rentals/${id}`),
 };
 
 // ============================================

@@ -1,17 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAdminUser } from "@/lib/auth";
+import { getAdminSession } from "@/lib/auth";
 import User from "@/models/User";
 import { canChangeProviderStatus } from "@/lib/stateRules";
 import { connectToDatabase } from "@/lib/db";
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
     try {
-        let admin;
-        try {
-            admin = getAdminUser(request);
-        } catch (err: any) {
-            return NextResponse.json({ error: err.message }, { status: 401 });
-        }
+        await getAdminSession();
+
         await connectToDatabase();
         const { id } = await params;
         const user = await User.findById(id);
@@ -43,6 +39,8 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
         }, { status: 200 });
 
     } catch (error) {
-        return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+        const message = error instanceof Error ? error.message : "Internal Server Error";
+        const status = message === "Unauthorized" ? 401 : 500;
+        return NextResponse.json({ error: message }, { status });
     }
 }

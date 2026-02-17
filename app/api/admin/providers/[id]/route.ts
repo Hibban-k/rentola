@@ -1,7 +1,34 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/db";
 import User from "@/models/User";
-import { getAdminUser } from "@/lib/auth";
+import { getAdminSession } from "@/lib/auth";
+
+// GET /api/admin/providers/[id] - Get a single provider
+export async function GET(
+    request: NextRequest,
+    { params }: { params: Promise<{ id: string }> }
+) {
+    try {
+        await getAdminSession();
+        const { id } = await params;
+
+        await connectToDatabase();
+
+        const provider = await User.findOne({ _id: id, role: "provider" })
+            .select("-password");
+
+        if (!provider) {
+            return NextResponse.json({ error: "Provider not found" }, { status: 404 });
+        }
+
+        return NextResponse.json(provider);
+    } catch (error) {
+        console.error("Error fetching provider:", error);
+        const message = error instanceof Error ? error.message : "Internal Server Error";
+        const status = message === "Unauthorized" ? 401 : 500;
+        return NextResponse.json({ error: message }, { status });
+    }
+}
 
 // PATCH /api/admin/providers/[id] - Approve or reject a provider
 export async function PATCH(
@@ -9,7 +36,7 @@ export async function PATCH(
     { params }: { params: Promise<{ id: string }> }
 ) {
     try {
-        getAdminUser(request);
+        await getAdminSession();
         const { id } = await params;
 
         await connectToDatabase();
@@ -38,6 +65,7 @@ export async function PATCH(
     } catch (error) {
         console.error("Error updating provider status:", error);
         const message = error instanceof Error ? error.message : "Internal Server Error";
-        return NextResponse.json({ error: message }, { status: 500 });
+        const status = message === "Unauthorized" ? 401 : 500;
+        return NextResponse.json({ error: message }, { status });
     }
 }

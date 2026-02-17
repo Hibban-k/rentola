@@ -7,11 +7,11 @@ export default function HeroSection() {
             {/* Background Image with Overlay */}
             <div className="absolute inset-0 z-0">
                 <Image
-                    src="https://images.unsplash.com/photo-1503376763036-066120622c74?q=80&w=2940&auto=format&fit=crop"
+                    src="https://images.unsplash.com/photo-1617788138017-80ad40651399?q=80&w=2940&auto=format&fit=crop"
                     alt="Luxury Car Background"
                     fill
                     className="object-cover"
-                
+
                 />
                 <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-background/90" />
             </div>
@@ -41,7 +41,7 @@ export default function HeroSection() {
                         Find a Vehicle
                     </Link>
                     <Link
-                        href="/auth/signup?role=provider"
+                        href="/auth?mode=signup&role=provider"
                         className="w-full sm:w-auto px-8 py-4 bg-transparent border-2 border-white/30 text-white font-bold rounded-full hover:bg-white/10 transition-all backdrop-blur-sm"
                     >
                         List Your Vehicle

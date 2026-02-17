@@ -94,7 +94,7 @@ async function seed() {
                 ownerId: johnProvider._id,
                 pricePerDay: 50,
                 isAvailable: true,
-                vehicleImageUrl: [{ type: 'front', url: 'https://example.com/camry.jpg' }]
+                vehicleImageUrl: [{ type: 'front', url: 'https://images.unsplash.com/photo-1621007947382-bb3c399a7eeb?auto=format&fit=crop&q=80&w=1000' }]
             },
             {
                 name: 'Honda Civic 2022',
@@ -103,7 +103,7 @@ async function seed() {
                 ownerId: johnProvider._id,
                 pricePerDay: 45,
                 isAvailable: true,
-                vehicleImageUrl: [{ type: 'front', url: 'https://example.com/civic.jpg' }]
+                vehicleImageUrl: [{ type: 'front', url: 'https://images.unsplash.com/photo-1606152421802-db97b9c7a11b?auto=format&fit=crop&q=80&w=1000' }]
             },
             {
                 name: 'BMW X5 2023',
@@ -112,7 +112,16 @@ async function seed() {
                 ownerId: janeProvider._id,
                 pricePerDay: 120,
                 isAvailable: true,
-                vehicleImageUrl: [{ type: 'front', url: 'https://example.com/bmw.jpg' }]
+                vehicleImageUrl: [{ type: 'front', url: 'https://images.unsplash.com/photo-1556189250-72ba954e6013?auto=format&fit=crop&q=80&w=1000' }]
+            },
+            {
+                name: 'Mercedes-Benz C-Class',
+                type: 'car',
+                licensePlate: 'MER-7777',
+                ownerId: janeProvider._id,
+                pricePerDay: 110,
+                isAvailable: true,
+                vehicleImageUrl: [{ type: 'front', url: 'https://images.unsplash.com/photo-1617788138017-80ad40651399?auto=format&fit=crop&q=80&w=1000' }]
             },
             {
                 name: 'Yamaha R15',
@@ -121,7 +130,7 @@ async function seed() {
                 ownerId: janeProvider._id,
                 pricePerDay: 25,
                 isAvailable: true,
-                vehicleImageUrl: [{ type: 'side', url: 'https://example.com/r15.jpg' }]
+                vehicleImageUrl: [{ type: 'side', url: 'https://images.unsplash.com/photo-1558981403-c5f9899a28bc?auto=format&fit=crop&q=80&w=1000' }]
             },
             {
                 name: 'Royal Enfield Classic',
@@ -129,8 +138,17 @@ async function seed() {
                 licensePlate: 'BIKE-002',
                 ownerId: johnProvider._id,
                 pricePerDay: 30,
-                isAvailable: false,  // This one is unavailable
-                vehicleImageUrl: [{ type: 'side', url: 'https://example.com/enfield.jpg' }]
+                isAvailable: false,
+                vehicleImageUrl: [{ type: 'side', url: 'https://images.unsplash.com/photo-1558981285-6f0c94958bb5?auto=format&fit=crop&q=80&w=1000' }]
+            },
+            {
+                name: 'Harley Davidson Iron 883',
+                type: 'bike',
+                licensePlate: 'HD-883',
+                ownerId: johnProvider._id,
+                pricePerDay: 80,
+                isAvailable: true,
+                vehicleImageUrl: [{ type: 'side', url: 'https://images.unsplash.com/photo-1558980664-8848c4883490?auto=format&fit=crop&q=80&w=1000' }]
             }
         ]);
 

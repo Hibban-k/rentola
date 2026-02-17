@@ -34,7 +34,7 @@ export default function Footer() {
                                 </Link>
                             </li>
                             <li>
-                                <Link href="/auth/signup?role=provider" className="hover:text-primary transition-colors">
+                                <Link href="/auth?mode=signup&role=provider" className="hover:text-primary transition-colors">
                                     Become a Provider
                                 </Link>
                             </li>

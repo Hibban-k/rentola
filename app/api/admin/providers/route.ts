@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/db";
 import User from "@/models/User";
-import { getAdminUser } from "@/lib/auth";
+import { getAdminSession } from "@/lib/auth";
 
 // GET /api/admin/providers - Get all providers for approval management
 export async function GET(request: NextRequest) {
     try {
-        getAdminUser(request);
+        await getAdminSession();
 
         await connectToDatabase();
 
@@ -28,6 +28,7 @@ export async function GET(request: NextRequest) {
     } catch (error) {
         console.error("Error fetching providers:", error);
         const message = error instanceof Error ? error.message : "Internal Server Error";
-        return NextResponse.json({ error: message }, { status: 500 });
+        const status = message === "Unauthorized" ? 401 : 500;
+        return NextResponse.json({ error: message }, { status });
     }
 }

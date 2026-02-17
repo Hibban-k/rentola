@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/db";
 import Vehicle from "@/models/Vehicle";
-import { getProviderUser } from "@/lib/auth";
+import { getProviderSession } from "@/lib/auth";
 
 // PATCH /api/provider/vehicles/[id] - Update vehicle (availability, etc.)
 export async function PATCH(
@@ -9,12 +9,12 @@ export async function PATCH(
     { params }: { params: Promise<{ id: string }> }
 ) {
     try {
-        const provider = getProviderUser(request);
+        const provider = await getProviderSession();
         const { id } = await params;
 
         await connectToDatabase();
 
-        const vehicle = await Vehicle.findOne({ _id: id, ownerId: provider.userId });
+        const vehicle = await Vehicle.findOne({ _id: id, ownerId: provider.id });
 
         if (!vehicle) {
             return NextResponse.json({ error: "Vehicle not found" }, { status: 404 });
@@ -25,7 +25,7 @@ export async function PATCH(
 
         for (const key of Object.keys(body)) {
             if (allowedUpdates.includes(key)) {
-                (vehicle as Record<string, unknown>)[key] = body[key];
+                (vehicle as any)[key] = body[key];
             }
         }
 
@@ -35,7 +35,8 @@ export async function PATCH(
     } catch (error) {
         console.error("Error updating vehicle:", error);
         const message = error instanceof Error ? error.message : "Internal Server Error";
-        return NextResponse.json({ error: message }, { status: 500 });
+        const status = message === "Unauthorized" || message === "Not a provider" || message === "Provider not approved" ? 401 : 500;
+        return NextResponse.json({ error: message }, { status });
     }
 }
 
@@ -45,12 +46,12 @@ export async function GET(
     { params }: { params: Promise<{ id: string }> }
 ) {
     try {
-        const provider = getProviderUser(request);
+        const provider = await getProviderSession();
         const { id } = await params;
 
         await connectToDatabase();
 
-        const vehicle = await Vehicle.findOne({ _id: id, ownerId: provider.userId }).lean();
+        const vehicle = await Vehicle.findOne({ _id: id, ownerId: provider.id }).lean();
 
         if (!vehicle) {
             return NextResponse.json({ error: "Vehicle not found" }, { status: 404 });
@@ -60,6 +61,33 @@ export async function GET(
     } catch (error) {
         console.error("Error fetching vehicle:", error);
         const message = error instanceof Error ? error.message : "Internal Server Error";
-        return NextResponse.json({ error: message }, { status: 500 });
+        const status = message === "Unauthorized" || message === "Not a provider" || message === "Provider not approved" ? 401 : 500;
+        return NextResponse.json({ error: message }, { status });
+    }
+}
+
+// DELETE /api/provider/vehicles/[id] - Delete vehicle
+export async function DELETE(
+    request: NextRequest,
+    { params }: { params: Promise<{ id: string }> }
+) {
+    try {
+        const provider = await getProviderSession();
+        const { id } = await params;
+
+        await connectToDatabase();
+
+        const vehicle = await Vehicle.findOneAndDelete({ _id: id, ownerId: provider.id });
+
+        if (!vehicle) {
+            return NextResponse.json({ error: "Vehicle not found" }, { status: 404 });
+        }
+
+        return NextResponse.json({ success: true, message: "Vehicle deleted" });
+    } catch (error) {
+        console.error("Error deleting vehicle:", error);
+        const message = error instanceof Error ? error.message : "Internal Server Error";
+        const status = message === "Unauthorized" || message === "Not a provider" || message === "Provider not approved" ? 401 : 500;
+        return NextResponse.json({ error: message }, { status });
     }
 }

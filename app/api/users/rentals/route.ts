@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/db";
 import Rental from "@/models/Rental";
-import { getAuthUser } from "@/lib/auth";
+import { getAuthSession } from "@/lib/auth";
 import { getVehicleWithOwnership } from "@/lib/ownership";
 import { canCreateRental } from "@/lib/stateRules";
 
 export async function POST(request: NextRequest) {
     try {
-        const user = getAuthUser(request);
+        const user = await getAuthSession();
         if (!user) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
         if (!vehicleId || !startDate || !endDate || !pickupLocation || !dropOffLocation) {
             return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
         }
-        const { vehicle, isOwner } = await getVehicleWithOwnership(vehicleId, user.userId);
+        const { vehicle, isOwner } = await getVehicleWithOwnership(vehicleId, user.id!);
         if (!vehicle) {
             return NextResponse.json({ error: "Vehicle not found" }, { status: 404 });
         }
@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
 
         const rental = await Rental.create({
             vehicleId: vehicleId,
-            renterId: user.userId,
+            renterId: user.id,
             pickupLocation,
             dropOffLocation,
             rentalPeriod: {
@@ -63,12 +63,12 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
     try {
-        const user = getAuthUser(request);
+        const user = await getAuthSession();
         if (!user) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
         await connectToDatabase();
-        const rentals = await Rental.find({ renterId: user.userId })
+        const rentals = await Rental.find({ renterId: user.id })
             .populate("vehicleId", "name type pricePerDay vehicleImageUrl")
             .sort({ createdAt: -1 })
             .lean();
@@ -78,4 +78,3 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
     }
 }
-

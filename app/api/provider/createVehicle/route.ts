@@ -1,15 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getProviderUser } from "@/lib/auth";
+import { getProviderSession } from "@/lib/auth";
 import Vehicle from "@/models/Vehicle";
 import { connectToDatabase } from "@/lib/db";
 
 
 export async function POST(request: NextRequest) {
     try {
-        
-        const provider = getProviderUser(request);
+        const provider = await getProviderSession();
+
         const body = await request.json();
-        const {name, type,licensePlate, pricePerDay, vehicleImageUrl } = body;
+        const { name, type, licensePlate, pricePerDay, vehicleImageUrl } = body;
 
         if (!name || !type || !licensePlate || !pricePerDay || !vehicleImageUrl) {
             return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
@@ -23,14 +23,15 @@ export async function POST(request: NextRequest) {
             licensePlate,
             pricePerDay,
             vehicleImageUrl,
-            ownerId: provider.userId,
-        }); 
-        console.log(provider.userId)
+            ownerId: provider.id,
+        });
+
         return NextResponse.json({ success: true, message: "Vehicle created successfully" }, { status: 201 });
-
-
 
     } catch (error) {
         console.log(error);
-        return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
-    }}
+        const message = error instanceof Error ? error.message : "Internal Server Error";
+        const status = message === "Unauthorized" || message === "Not a provider" || message === "Provider not approved" ? 401 : 500;
+        return NextResponse.json({ error: message }, { status });
+    }
+}

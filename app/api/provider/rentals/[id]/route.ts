@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-// import { getServerSession } from "next-auth";
-// import { authOptions } from "@/lib/auth";
-import { getProviderUser } from "@/lib/auth";
+import { getProviderSession } from "@/lib/auth";
 import Rental from "@/models/Rental";
 import { connectToDatabase } from "@/lib/db";
 import { IVehicle } from "@/models/Vehicle";
@@ -16,13 +14,7 @@ export async function PATCH(
         const { id } = await params;
         await connectToDatabase();
 
-
-        let user;
-        try {
-            user = getProviderUser(request);
-        } catch (err: any) {
-            return NextResponse.json({ error: err.message }, { status: 401 });
-        }
+        const user = await getProviderSession();
 
         const { status } = await request.json();
         const rental = await Rental.findById(id).populate("vehicleId");
@@ -36,7 +28,7 @@ export async function PATCH(
         if (!vehicle) {
             return NextResponse.json({ error: "Vehicle not found" }, { status: 404 });
         }
-        const isOwner = await isVehicleOwner(vehicle._id.toString(), user.userId);
+        const isOwner = await isVehicleOwner(vehicle._id.toString(), user.id!);
         if (!isOwner) {
             return NextResponse.json({ error: "Forbidden: Ownership mismatch" }, { status: 403 });
         }
@@ -53,6 +45,8 @@ export async function PATCH(
 
         return NextResponse.json(rental);
     } catch (error) {
-        return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+        const message = error instanceof Error ? error.message : "Internal server error";
+        const status = message === "Unauthorized" || message === "Not a provider" || message === "Provider not approved" ? 401 : 500;
+        return NextResponse.json({ error: message }, { status });
     }
 }

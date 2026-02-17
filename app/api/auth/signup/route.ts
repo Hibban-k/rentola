@@ -4,7 +4,7 @@ import User from "@/models/User";
 import jwt from "jsonwebtoken";
 import { IUser } from "@/models/User";
 
-const JWT_SECRET = process.env.JWT_SECRET!;
+const JWT_SECRET = process.env.NEXTAUTH_SECRET!;
 
 export async function POST(request: NextRequest) {
     try {
@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
 
         // Parse request body
         const body = await request.json();
-        const { name, email, password, imageUrl, documents,role } = body;
+        const { name, email, password, imageUrl, documents, role } = body;
 
         // Validate required fields
         if (!name || !email || !password || !role) {
@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
         if (role === "provider" && !documents) {
             return NextResponse.json(
                 { success: false, message: "Documents are required for providers" },
-                { status: 409}
+                { status: 409 }
             );
         }
 
@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Create new user (password will be hashed by the pre-save hook in User model)
-        const newUser:IUser = await User.create({
+        const newUser: IUser = await User.create({
             name,
             email: email.toLowerCase(),
             password,
@@ -85,7 +85,7 @@ export async function POST(request: NextRequest) {
                 // email: newUser.email,
                 role: newUser.role,
                 providerStatus: newUser.providerStatus,
-                
+
             },
             JWT_SECRET,
             { expiresIn: "7d" }

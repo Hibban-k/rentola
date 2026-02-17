@@ -1,40 +1,36 @@
-import jwt from "jsonwebtoken";
+import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
-import { connectToDatabase } from "./db";
-import Vehicle from "@/models/Vehicle";
+import { authOptions } from "./authOptions";
 
-const JWT_SECRET = process.env.JWT_SECRET!;
-
-export interface JWTPayload {
-    userId: string;
-    role: "user" | "provider" | "admin";
-    providerStatus: "pending" | "approved" | "rejected";
+export interface SessionUser {
+    id?: string;
+    email?: string;
+    name?: string;
+    role?: string;
+    providerStatus?: string;
 }
 
-export function verifyJWT(token: string): JWTPayload {
-    try {
-        const decoded = jwt.verify(token, JWT_SECRET) as JWTPayload;
-        return decoded;
-    } catch (error) {
-        throw new Error("Invalid or expired token");
-    }
-}
-export function getAuthUser(request: Request): JWTPayload | null {
-    const authHeader = request.headers.get("authorization");
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+/**
+ * Get the current authenticated session for API routes.
+ * Returns the session user or null if not authenticated.
+ */
+export async function getAuthSession(): Promise<SessionUser | null> {
+    const session = await getServerSession(authOptions);
+
+    if (!session?.user) {
         return null;
     }
 
-    const token = authHeader.split(" ")[1];
-    try {
-        return verifyJWT(token);
-    } catch {
-        return null;
-    }
+    return session.user as SessionUser;
 }
 
-export function getProviderUser(request: Request): JWTPayload {
-    const user = getAuthUser(request);
+/**
+ * Get the session and verify the user is a provider with approved status.
+ * Throws an error if not authenticated or not an approved provider.
+ * Admin users are also allowed.
+ */
+export async function getProviderSession(): Promise<SessionUser> {
+    const user = await getAuthSession();
 
     if (!user) {
         throw new Error("Unauthorized");
@@ -56,8 +52,12 @@ export function getProviderUser(request: Request): JWTPayload {
     return user;
 }
 
-export function getAdminUser(request: Request): JWTPayload {
-    const user = getAuthUser(request);
+/**
+ * Get the session and verify the user is an admin.
+ * Throws an error if not authenticated or not an admin.
+ */
+export async function getAdminSession(): Promise<SessionUser> {
+    const user = await getAuthSession();
 
     if (!user) {
         throw new Error("Unauthorized");
@@ -68,4 +68,18 @@ export function getAdminUser(request: Request): JWTPayload {
     }
 
     return user;
+}
+
+/**
+ * Helper to create an unauthorized response for API routes.
+ */
+export function unauthorizedResponse(message: string = "Unauthorized") {
+    return NextResponse.json({ error: message }, { status: 401 });
+}
+
+/**
+ * Helper to create a forbidden response for API routes.
+ */
+export function forbiddenResponse(message: string = "Forbidden") {
+    return NextResponse.json({ error: message }, { status: 403 });
 }

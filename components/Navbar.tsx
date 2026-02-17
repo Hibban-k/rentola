@@ -1,14 +1,20 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useEffect } from "react";
-import { Menu, X, Car, User } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
+import { useSession, signOut } from "next-auth/react";
+import { Menu, X, Car, User, LogOut, LayoutDashboard, ChevronDown } from "lucide-react";
 
 export default function Navbar() {
+    const router = useRouter();
+    const { data: session, status } = useSession();
     const [isScrolled, setIsScrolled] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-    const [user, setUser] = useState(null);
+    const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+    const dropdownRef = useRef<HTMLDivElement>(null);
 
+    // Scroll handler
     useEffect(() => {
         const handleScroll = () => {
             setIsScrolled(window.scrollY > 20);
@@ -17,12 +23,43 @@ export default function Navbar() {
         return () => window.removeEventListener("scroll", handleScroll);
     }, []);
 
+    // Close dropdown when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+                setIsDropdownOpen(false);
+            }
+        };
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
+
+    const getDashboardLink = () => {
+        if (!session?.user) return "/user/dashboard";
+        switch (session.user.role) {
+            case "admin":
+                return "/admin/dashboard";
+            case "provider":
+                return "/provider/dashboard";
+            default:
+                return "/user/dashboard";
+        }
+    };
+    const handleLogout = async () => {
+        await signOut({ redirect: false });
+        setIsDropdownOpen(false);
+        window.location.href = "/"; // Force full reload
+    };
+
+
+    const isLoggedIn = status === "authenticated" && session?.user;
+
     return (
         <div className="fixed top-0 left-0 right-0 z-50 flex justify-center pt-4 px-4 sm:px-6 lg:px-8">
             <nav
                 className={`w-full max-w-5xl transition-all duration-300 ease-in-out ${isScrolled
-                        ? "bg-background/70 backdrop-blur-md shadow-lg border border-white/10 dark:border-white/5"
-                        : "bg-background/50 backdrop-blur-sm border border-transparent"
+                    ? "bg-background/70 backdrop-blur-md shadow-lg border border-white/10 dark:border-white/5"
+                    : "bg-background/50 backdrop-blur-sm border border-transparent"
                     } rounded-full px-6 py-3 flex items-center justify-between`}
             >
                 {/* Logo */}
@@ -51,23 +88,65 @@ export default function Navbar() {
                     </Link>
                 </div>
 
-                {/* Auth Buttons */}
-                {
+                {/* Auth Section - Desktop */}
                 <div className="hidden md:flex items-center gap-4">
-                    <Link
-                        href="/auth/signin"
-                        className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
-                    >
-                        Log in
-                    </Link>
-                    <Link
-                        href="/auth/signup"
-                        className="bg-primary text-primary-foreground hover:bg-primary/90 px-4 py-2 rounded-full text-sm font-medium transition-colors shadow-sm"
-                    >
-                        Sign Up
-                    </Link>
+                    {isLoggedIn ? (
+                        /* Logged In - Profile Dropdown */
+                        <div className="relative" ref={dropdownRef}>
+                            <button
+                                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                                className="flex items-center gap-2 px-3 py-2 rounded-full bg-primary/10 hover:bg-primary/20 transition-colors"
+                            >
+                                <div className="w-7 h-7 bg-primary rounded-full flex items-center justify-center">
+                                    <User className="w-4 h-4 text-primary-foreground" />
+                                </div>
+                                <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform ${isDropdownOpen ? "rotate-180" : ""}`} />
+                            </button>
+
+                            {/* Dropdown Menu */}
+                            {isDropdownOpen && (
+                                <div className="absolute right-0 top-full mt-2 w-48 bg-popover border border-border rounded-xl shadow-lg py-2 animate-in fade-in slide-in-from-top-2">
+                                    <div className="px-3 py-2 border-b border-border">
+                                        <p className="text-xs text-muted-foreground">Signed in as</p>
+                                        <p className="text-sm font-medium capitalize">{session.user.role}</p>
+                                    </div>
+                                    <Link
+                                        href={getDashboardLink()}
+                                        onClick={() => setIsDropdownOpen(false)}
+                                        className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-muted transition-colors"
+                                    >
+                                        <LayoutDashboard className="w-4 h-4" />
+                                        Dashboard
+                                    </Link>
+                                    <button
+                                        onClick={handleLogout}
+                                        className="w-full flex items-center gap-2 px-3 py-2 text-sm text-destructive hover:bg-destructive/10 transition-colors"
+                                    >
+                                        <LogOut className="w-4 h-4" />
+                                        Log out
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    ) : (
+                        /* Not Logged In - Show Sign In/Up */
+                        <>
+                            <Link
+                                href="/auth"
+                                className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
+                            >
+                                Log in
+                            </Link>
+                            <Link
+                                href="/auth?mode=signup"
+                                className="bg-primary text-primary-foreground hover:bg-primary/90 px-4 py-2 rounded-full text-sm font-medium transition-colors shadow-sm"
+                            >
+                                Sign Up
+                            </Link>
+                        </>
+                    )}
                 </div>
-}
+
                 {/* Mobile Menu Button */}
                 <button
                     className="md:hidden p-2 text-muted-foreground hover:text-primary transition-colors"
@@ -89,20 +168,48 @@ export default function Navbar() {
                         <span className="font-medium">Browse Vehicles</span>
                     </Link>
                     <div className="h-px bg-border my-1" />
-                    <Link
-                        href="/auth/signin"
-                        className="flex items-center justify-center p-3 rounded-lg border border-border hover:bg-muted/50 transition-colors text-sm font-medium"
-                        onClick={() => setIsMobileMenuOpen(false)}
-                    >
-                        Log in
-                    </Link>
-                    <Link
-                        href="/auth/signup"
-                        className="flex items-center justify-center p-3 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors text-sm font-bold"
-                        onClick={() => setIsMobileMenuOpen(false)}
-                    >
-                        Sign Up
-                    </Link>
+
+                    {isLoggedIn ? (
+                        /* Mobile - Logged In */
+                        <>
+                            <Link
+                                href={getDashboardLink()}
+                                className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors"
+                                onClick={() => setIsMobileMenuOpen(false)}
+                            >
+                                <LayoutDashboard className="w-5 h-5 text-muted-foreground" />
+                                <span className="font-medium">Dashboard</span>
+                            </Link>
+                            <button
+                                onClick={() => {
+                                    handleLogout();
+                                    setIsMobileMenuOpen(false);
+                                }}
+                                className="flex items-center gap-3 p-3 rounded-lg hover:bg-destructive/10 transition-colors text-destructive"
+                            >
+                                <LogOut className="w-5 h-5" />
+                                <span className="font-medium">Log out</span>
+                            </button>
+                        </>
+                    ) : (
+                        /* Mobile - Not Logged In */
+                        <>
+                            <Link
+                                href="/auth"
+                                className="flex items-center justify-center p-3 rounded-lg border border-border hover:bg-muted/50 transition-colors text-sm font-medium"
+                                onClick={() => setIsMobileMenuOpen(false)}
+                            >
+                                Log in
+                            </Link>
+                            <Link
+                                href="/auth?mode=signup"
+                                className="flex items-center justify-center p-3 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors text-sm font-bold"
+                                onClick={() => setIsMobileMenuOpen(false)}
+                            >
+                                Sign Up
+                            </Link>
+                        </>
+                    )}
                 </div>
             )}
         </div>

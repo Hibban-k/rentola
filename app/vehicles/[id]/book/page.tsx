@@ -4,6 +4,7 @@ import { useState, useEffect, use, FormEvent } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import {
@@ -15,7 +16,7 @@ import {
     AlertCircle,
     CheckCircle2
 } from "lucide-react";
-import { vehiclesApi, rentalsApi, authApi } from "@/lib/apiClient";
+import { vehiclesApi, rentalsApi } from "@/lib/apiClient";
 
 interface Vehicle {
     _id: string;
@@ -29,6 +30,7 @@ interface Vehicle {
 export default function BookVehiclePage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = use(params);
     const router = useRouter();
+    const { status } = useSession();
 
     const [vehicle, setVehicle] = useState<Vehicle | null>(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -77,8 +79,8 @@ export default function BookVehiclePage({ params }: { params: Promise<{ id: stri
         e.preventDefault();
         setError(null);
 
-        if (!authApi.isLoggedIn()) {
-            router.push("/auth/signin");
+        if (status === "unauthenticated") {
+            router.push(`/auth?callbackUrl=/vehicles/${id}/book`);
             return;
         }
 
@@ -105,7 +107,7 @@ export default function BookVehiclePage({ params }: { params: Promise<{ id: stri
             setSuccess(true);
 
             setTimeout(() => {
-                router.push("/dashboard");
+                router.push("/user/dashboard");
             }, 2000);
         } catch (err) {
             setError(err instanceof Error ? err.message : "Something went wrong");

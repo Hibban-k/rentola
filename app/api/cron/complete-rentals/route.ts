@@ -1,17 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/db";
 import Rental from "@/models/Rental";
-import { getAdminUser } from "@/lib/auth";
+import { getAdminSession } from "@/lib/auth";
 
 export async function POST(request: NextRequest) {
     try {
-        //  have to do this for security some work
-        const cronSecret = request.headers.get("x-cron-secret");
-        const isValidCronSecret = cronSecret === process.env.CRON_SECRET;
+        // Check for cron secret or admin auth
+        const cronHeader = request.headers.get("x-cron-secret");
+        console.log("Received Cron Secret Header:", cronHeader);
+        console.log("Expected Cron Secret:", process.env.CRON_SECRET);
+        const isValidCronSecret = cronHeader === process.env.CRON_SECRET;
 
         if (!isValidCronSecret) {
             try {
-                getAdminUser(request);
+                await getAdminSession();
             } catch (err: any) {
                 return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
             }

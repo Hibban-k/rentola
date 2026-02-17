@@ -1,16 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/db";
 import Vehicle from "@/models/Vehicle";
-import { getProviderUser } from "@/lib/auth";
+import { getProviderSession } from "@/lib/auth";
 
 // GET /api/provider/vehicles - Get provider's vehicles
 export async function GET(request: NextRequest) {
     try {
-        const provider = getProviderUser(request);
+        const provider = await getProviderSession();
 
         await connectToDatabase();
 
-        const vehicles = await Vehicle.find({ ownerId: provider.userId })
+        const vehicles = await Vehicle.find({ ownerId: provider.id })
             .sort({ createdAt: -1 })
             .lean();
 
@@ -18,6 +18,7 @@ export async function GET(request: NextRequest) {
     } catch (error) {
         console.error("Error fetching provider vehicles:", error);
         const message = error instanceof Error ? error.message : "Internal Server Error";
-        return NextResponse.json({ error: message }, { status: 500 });
+        const status = message === "Unauthorized" || message === "Not a provider" || message === "Provider not approved" ? 401 : 500;
+        return NextResponse.json({ error: message }, { status });
     }
 }

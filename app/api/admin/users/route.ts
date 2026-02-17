@@ -1,22 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAdminUser } from "@/lib/auth";
+import { getAdminSession } from "@/lib/auth";
 import User from "@/models/User";
+import { connectToDatabase } from "@/lib/db";
 
 export async function GET(request: NextRequest) {
     try {
-        let admin;
-        try {
-            admin = getAdminUser(request);
-        } catch (err:any) {
-           
-            return NextResponse.json({ error: err.message }, { status: 401 });
-        }
-        const users = await User.find({role:"user"});
-        const providers = await User.find({role:"provider"});
+        await getAdminSession();
 
-        return NextResponse.json({ users, providers }, { status: 200 });
+        await connectToDatabase();
+
+        const users = await User.find({}).select("-password").sort({ createdAt: -1 });
+
+        return NextResponse.json({ users }, { status: 200 });
 
     } catch (error) {
-        return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+        const message = error instanceof Error ? error.message : "Internal Server Error";
+        const status = message === "Unauthorized" ? 401 : 500;
+        return NextResponse.json({ error: message }, { status });
     }
 }
