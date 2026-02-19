@@ -10,6 +10,7 @@ const publicRoutes = [
     "/api/auth",
     "/unauthorized",
     "/api/cron",
+    "/api/vehicles",
 ];
 
 // Check if the path matches any public route
