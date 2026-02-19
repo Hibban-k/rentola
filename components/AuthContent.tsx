@@ -3,7 +3,7 @@
 import { useState, FormEvent, useRef, ChangeEvent, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
-import { Mail, Lock, User, Shield, AlertCircle, Loader2, Upload, FileText, X } from "lucide-react";
+import { Mail, Lock, User, Shield, AlertCircle, Loader2, Upload, FileText, X, Eye, EyeOff } from "lucide-react";
 import { authApi } from "@/lib/apiClient";
 
 type AuthMode = "signin" | "signup";
@@ -23,6 +23,8 @@ export function AuthContent() {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
+    const [showPassword, setShowPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const [formData, setFormData] = useState({
@@ -294,13 +296,20 @@ export function AuthContent() {
                                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                                 <input
                                     id="password"
-                                    type="password"
+                                    type={showPassword ? "text" : "password"}
                                     required
                                     value={formData.password}
                                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                                    className="w-full pl-10 pr-4 py-3 rounded-xl border border-input bg-background focus:outline-none focus:ring-2 focus:ring-ring"
+                                    className="w-full pl-10 pr-12 py-3 rounded-xl border border-input bg-background focus:outline-none focus:ring-2 focus:ring-ring"
                                     placeholder="••••••••"
                                 />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPassword(!showPassword)}
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 hover:bg-muted rounded-lg transition-colors text-muted-foreground"
+                                >
+                                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                                </button>
                             </div>
                         </div>
 
@@ -315,13 +324,20 @@ export function AuthContent() {
                                         <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                                         <input
                                             id="confirmPassword"
-                                            type="password"
+                                            type={showConfirmPassword ? "text" : "password"}
                                             required
                                             value={formData.confirmPassword}
                                             onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-                                            className="w-full pl-10 pr-4 py-3 rounded-xl border border-input bg-background focus:outline-none focus:ring-2 focus:ring-ring"
+                                            className="w-full pl-10 pr-12 py-3 rounded-xl border border-input bg-background focus:outline-none focus:ring-2 focus:ring-ring"
                                             placeholder="••••••••"
                                         />
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                            className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 hover:bg-muted rounded-lg transition-colors text-muted-foreground"
+                                        >
+                                            {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                                        </button>
                                     </div>
                                 </div>
 
