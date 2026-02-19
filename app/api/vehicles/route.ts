@@ -32,11 +32,28 @@ export async function GET(request: Request) {
             query.pricePerDay = { ...((query.pricePerDay as object) || {}), $lte: Number(maxPrice) };
         }
 
-        const vehicles = await Vehicle.find(query)
-            .sort({ createdAt: -1 })
-            .lean();
+        const page = Number(searchParams.get("page")) || 1;
+        const limit = Number(searchParams.get("limit")) || 12;
+        const skip = (page - 1) * limit;
 
-        return NextResponse.json({ vehicles });
+        const [vehicles, total] = await Promise.all([
+            Vehicle.find(query)
+                .sort({ createdAt: -1 })
+                .skip(skip)
+                .limit(limit)
+                .lean(),
+            Vehicle.countDocuments(query)
+        ]);
+
+        return NextResponse.json({
+            vehicles,
+            pagination: {
+                total,
+                page,
+                limit,
+                totalPages: Math.ceil(total / limit)
+            }
+        });
     } catch (error) {
         console.error("Error fetching vehicles:", error);
         return NextResponse.json({ error: "Failed to fetch vehicles" }, { status: 500 });

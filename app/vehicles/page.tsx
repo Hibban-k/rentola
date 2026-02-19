@@ -11,7 +11,12 @@ import { vehiclesApi, Vehicle } from "@/lib/apiClient";
 export default function VehiclesPage() {
     const [vehicles, setVehicles] = useState<Vehicle[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [isMoreLoading, setIsMoreLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+
+    // Pagination
+    const [page, setPage] = useState(1);
+    const [hasMore, setHasMore] = useState(true);
 
     // Filters
     const [searchQuery, setSearchQuery] = useState("");
@@ -19,15 +24,21 @@ export default function VehiclesPage() {
     const [showFilters, setShowFilters] = useState(false);
 
     useEffect(() => {
-        fetchVehicles();
+        setPage(1);
+        setVehicles([]);
+        fetchVehicles(1, true);
     }, [typeFilter]);
 
-    const fetchVehicles = async () => {
-        setIsLoading(true);
+    const fetchVehicles = async (pageNum: number, isInitial: boolean = false) => {
+        if (isInitial) setIsLoading(true);
+        else setIsMoreLoading(true);
         setError(null);
 
         try {
-            const filters: { type?: "car" | "bike"; search?: string } = {};
+            const filters: { type?: "car" | "bike"; search?: string; page: number; limit: number } = {
+                page: pageNum,
+                limit: 12
+            };
             if (typeFilter !== "all") filters.type = typeFilter;
             if (searchQuery) filters.search = searchQuery;
 
@@ -35,17 +46,32 @@ export default function VehiclesPage() {
 
             if (apiError) throw new Error(apiError);
 
-            setVehicles(data?.vehicles || []);
+            if (isInitial) {
+                setVehicles(data?.vehicles || []);
+            } else {
+                setVehicles(prev => [...prev, ...(data?.vehicles || [])]);
+            }
+
+            setHasMore(data?.pagination ? data.pagination.page < data.pagination.totalPages : false);
         } catch (err) {
             setError(err instanceof Error ? err.message : "Failed to load vehicles");
         } finally {
             setIsLoading(false);
+            setIsMoreLoading(false);
         }
+    };
+
+    const handleLoadMore = () => {
+        const nextPage = page + 1;
+        setPage(nextPage);
+        fetchVehicles(nextPage);
     };
 
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault();
-        fetchVehicles();
+        setPage(1);
+        setVehicles([]);
+        fetchVehicles(1, true);
     };
 
     return (
@@ -180,51 +206,66 @@ export default function VehiclesPage() {
                                 <p className="text-muted-foreground">Try adjusting your filters or search query.</p>
                             </div>
                         ) : (
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                                {vehicles.map((vehicle) => (
-                                    <Link
-                                        key={vehicle._id}
-                                        href={`/vehicles/${vehicle._id}`}
-                                        className="group bg-card border border-border rounded-2xl overflow-hidden hover:shadow-xl hover:border-primary/30 transition-all"
-                                    >
-                                        {/* Image */}
-                                        <div className="relative aspect-video bg-muted overflow-hidden">
-                                            {vehicle.vehicleImageUrl && vehicle.vehicleImageUrl.length > 0 ? (
-                                                <Image
-                                                    src={vehicle.vehicleImageUrl[0].url}
-                                                    alt={vehicle.name}
-                                                    fill
-                                                    className="object-cover group-hover:scale-105 transition-transform duration-300"
-                                                />
-                                            ) : (
-                                                <div className="w-full h-full flex items-center justify-center">
-                                                    {vehicle.type === "car" ? (
-                                                        <Car className="w-12 h-12 text-muted-foreground" />
-                                                    ) : (
-                                                        <Bike className="w-12 h-12 text-muted-foreground" />
-                                                    )}
+                            <>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                                    {vehicles.map((vehicle) => (
+                                        <Link
+                                            key={vehicle._id}
+                                            href={`/vehicles/${vehicle._id}`}
+                                            className="group bg-card border border-border rounded-2xl overflow-hidden hover:shadow-xl hover:border-primary/30 transition-all"
+                                        >
+                                            {/* Image */}
+                                            <div className="relative aspect-video bg-muted overflow-hidden">
+                                                {vehicle.vehicleImageUrl && vehicle.vehicleImageUrl.length > 0 ? (
+                                                    <Image
+                                                        src={vehicle.vehicleImageUrl[0].url}
+                                                        alt={vehicle.name}
+                                                        fill
+                                                        className="object-cover group-hover:scale-105 transition-transform duration-300"
+                                                    />
+                                                ) : (
+                                                    <div className="w-full h-full flex items-center justify-center">
+                                                        {vehicle.type === "car" ? (
+                                                            <Car className="w-12 h-12 text-muted-foreground" />
+                                                        ) : (
+                                                            <Bike className="w-12 h-12 text-muted-foreground" />
+                                                        )}
+                                                    </div>
+                                                )}
+                                                <div className="absolute top-3 left-3">
+                                                    <span className="px-2 py-1 text-xs font-medium bg-background/80 backdrop-blur-sm rounded-full capitalize">
+                                                        {vehicle.type}
+                                                    </span>
                                                 </div>
-                                            )}
-                                            <div className="absolute top-3 left-3">
-                                                <span className="px-2 py-1 text-xs font-medium bg-background/80 backdrop-blur-sm rounded-full capitalize">
-                                                    {vehicle.type}
-                                                </span>
                                             </div>
-                                        </div>
 
-                                        {/* Content */}
-                                        <div className="p-4">
-                                            <h3 className="font-semibold text-lg mb-1 group-hover:text-primary transition-colors">
-                                                {vehicle.name}
-                                            </h3>
-                                            <p className="text-primary font-bold">
-                                                ₹{vehicle.pricePerDay.toLocaleString()}
-                                                <span className="text-muted-foreground font-normal text-sm"> /day</span>
-                                            </p>
-                                        </div>
-                                    </Link>
-                                ))}
-                            </div>
+                                            {/* Content */}
+                                            <div className="p-4">
+                                                <h3 className="font-semibold text-lg mb-1 group-hover:text-primary transition-colors">
+                                                    {vehicle.name}
+                                                </h3>
+                                                <p className="text-primary font-bold">
+                                                    ₹{vehicle.pricePerDay.toLocaleString()}
+                                                    <span className="text-muted-foreground font-normal text-sm"> /day</span>
+                                                </p>
+                                            </div>
+                                        </Link>
+                                    ))}
+                                </div>
+
+                                {/* Load More */}
+                                {hasMore && (
+                                    <div className="mt-12 flex justify-center">
+                                        <button
+                                            onClick={handleLoadMore}
+                                            disabled={isMoreLoading}
+                                            className="px-8 py-3 bg-card border border-border rounded-xl font-medium hover:bg-muted transition-colors disabled:opacity-50"
+                                        >
+                                            {isMoreLoading ? "Loading..." : "Load More Vehicles"}
+                                        </button>
+                                    </div>
+                                )}
+                            </>
                         )}
                     </main>
                 </div>

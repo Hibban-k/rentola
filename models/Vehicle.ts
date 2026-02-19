@@ -32,5 +32,12 @@ const VehicleSchema: Schema<IVehicle> = new Schema(
     { timestamps: true }
 );
 
+// Indexes for performance
+VehicleSchema.index({ isAvailable: 1 });
+VehicleSchema.index({ type: 1 });
+VehicleSchema.index({ pricePerDay: 1 });
+VehicleSchema.index({ name: 'text' });
+VehicleSchema.index({ createdAt: -1 });
+
 const Vehicle: Model<IVehicle> = models?.Vehicle || model<IVehicle>('Vehicle', VehicleSchema);
 export default Vehicle;

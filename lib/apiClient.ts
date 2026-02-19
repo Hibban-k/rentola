@@ -101,6 +101,8 @@ export interface VehicleFilters {
     search?: string;
     minPrice?: number;
     maxPrice?: number;
+    page?: number;
+    limit?: number;
 }
 
 export const vehiclesApi = {
@@ -111,9 +113,11 @@ export const vehiclesApi = {
         if (filters?.search) params.set("search", filters.search);
         if (filters?.minPrice) params.set("minPrice", String(filters.minPrice));
         if (filters?.maxPrice) params.set("maxPrice", String(filters.maxPrice));
+        if (filters?.page) params.set("page", String(filters.page));
+        if (filters?.limit) params.set("limit", String(filters.limit));
 
         const query = params.toString();
-        return apiFetch<{ vehicles: Vehicle[] }>(`/api/vehicles${query ? `?${query}` : ""}`);
+        return apiFetch<{ vehicles: Vehicle[]; pagination: { total: number; page: number; limit: number; totalPages: number } }>(`/api/vehicles${query ? `?${query}` : ""}`);
     },
 
     // Get single vehicle
