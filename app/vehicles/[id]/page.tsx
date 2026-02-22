@@ -7,18 +7,7 @@ import { useRouter } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Car, Bike, ArrowLeft, Calendar, User, ChevronLeft, ChevronRight } from "lucide-react";
-import { vehiclesApi } from "@/lib/apiClient";
-
-interface Vehicle {
-    _id: string;
-    name: string;
-    type: "car" | "bike";
-    pricePerDay: number;
-    licensePlate: string;
-    vehicleImageUrl: { type: string; url: string }[];
-    isAvailable: boolean;
-    owner: { name: string } | null;
-}
+import { vehiclesApi, Vehicle } from "@/lib/apiClient";
 
 export default function VehicleDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = use(params);

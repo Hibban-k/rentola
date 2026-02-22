@@ -10,6 +10,7 @@ export interface IVehicle extends Document {
         type: string;
         url: string;
     }[];
+    pickupStation: string;
     createdAt: Date;
     updatedAt: Date;
     isAvailable: boolean;
@@ -27,6 +28,7 @@ const VehicleSchema: Schema<IVehicle> = new Schema(
                 url: { type: String, required: true }
             }
         ],
+        pickupStation: { type: String, required: true },
         isAvailable: { type: Boolean, default: true },
     },
     { timestamps: true }

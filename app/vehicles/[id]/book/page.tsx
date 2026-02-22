@@ -16,16 +16,7 @@ import {
     AlertCircle,
     CheckCircle2
 } from "lucide-react";
-import { vehiclesApi, rentalsApi } from "@/lib/apiClient";
-
-interface Vehicle {
-    _id: string;
-    name: string;
-    type: "car" | "bike";
-    pricePerDay: number;
-    vehicleImageUrl: { type: string; url: string }[];
-    isAvailable: boolean;
-}
+import { vehiclesApi, rentalsApi, Vehicle } from "@/lib/apiClient";
 
 export default function BookVehiclePage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = use(params);
@@ -41,8 +32,6 @@ export default function BookVehiclePage({ params }: { params: Promise<{ id: stri
     const [formData, setFormData] = useState({
         startDate: "",
         endDate: "",
-        pickupLocation: "",
-        dropOffLocation: "",
     });
 
     const today = new Date().toISOString().split("T")[0];
@@ -54,7 +43,7 @@ export default function BookVehiclePage({ params }: { params: Promise<{ id: stri
 
                 if (apiError) throw new Error(apiError);
 
-                setVehicle(data?.vehicle as Vehicle || null);
+                setVehicle(data?.vehicle as unknown as Vehicle || null);
             } catch (err) {
                 setError(err instanceof Error ? err.message : "Failed to load vehicle");
             } finally {
@@ -96,8 +85,6 @@ export default function BookVehiclePage({ params }: { params: Promise<{ id: stri
                 vehicleId: id,
                 startDate: formData.startDate,
                 endDate: formData.endDate,
-                pickupLocation: formData.pickupLocation,
-                dropOffLocation: formData.dropOffLocation,
             });
 
             if (apiError) {
@@ -265,38 +252,21 @@ export default function BookVehiclePage({ params }: { params: Promise<{ id: stri
                                     </div>
                                 </div>
 
-                                {/* Locations */}
-                                <div>
-                                    <label htmlFor="pickupLocation" className="block text-sm font-medium mb-1.5">
-                                        <MapPin className="w-4 h-4 inline mr-1.5" />
-                                        Pickup Location
-                                    </label>
-                                    <input
-                                        id="pickupLocation"
-                                        type="text"
-                                        required
-                                        value={formData.pickupLocation}
-                                        onChange={(e) => setFormData({ ...formData, pickupLocation: e.target.value })}
-                                        className="w-full px-4 py-3 rounded-xl border border-input bg-background focus:outline-none focus:ring-2 focus:ring-ring transition-all"
-                                        placeholder="e.g., Mumbai Airport"
-                                    />
-                                </div>
-
-                                <div>
-                                    <label htmlFor="dropOffLocation" className="block text-sm font-medium mb-1.5">
-                                        <MapPin className="w-4 h-4 inline mr-1.5" />
-                                        Drop-off Location
-                                    </label>
-                                    <input
-                                        id="dropOffLocation"
-                                        type="text"
-                                        required
-                                        value={formData.dropOffLocation}
-                                        onChange={(e) => setFormData({ ...formData, dropOffLocation: e.target.value })}
-                                        className="w-full px-4 py-3 rounded-xl border border-input bg-background focus:outline-none focus:ring-2 focus:ring-ring transition-all"
-                                        placeholder="e.g., Pune Station"
-                                    />
-                                </div>
+                                {/* Pickup Station */}
+                                {vehicle && (
+                                    <div className="p-4 rounded-xl bg-primary/5 border border-primary/10">
+                                        <div className="flex items-start gap-3">
+                                            <MapPin className="w-5 h-5 text-primary shrink-0 mt-0.5" />
+                                            <div>
+                                                <p className="text-sm font-medium text-primary">Pickup & Return Point</p>
+                                                <p className="text-base font-semibold">{vehicle.pickupStation}</p>
+                                                <p className="text-xs text-muted-foreground mt-1">
+                                                    This vehicle must be picked up from and returned to this location.
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
 
                                 {/* Price Summary */}
                                 {calculateDays() > 0 && (

@@ -9,12 +9,6 @@ import Navbar from "@/components/Navbar";
 import PageHeader from "@/components/ui/PageHeader";
 import LoadingSkeleton from "@/components/ui/LoadingSkeleton";
 
-interface UserInfo {
-    userId: string;
-    role: "user" | "provider" | "admin";
-    providerStatus?: "pending" | "approved" | "rejected";
-}
-
 export default function ProfilePage() {
     const router = useRouter();
     const { data: session, status } = useSession();

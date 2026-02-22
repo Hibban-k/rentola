@@ -8,22 +8,7 @@ import Image from "next/image";
 import DashboardLayout from "@/components/DashboardLayout";
 import ImageUpload from "@/components/ImageUpload";
 import { ArrowLeft, Car, Bike, AlertCircle, Trash2, Loader2, X } from "lucide-react";
-import { providerApi } from "@/lib/apiClient";
-
-interface ImageUrl {
-    type: string;
-    url: string;
-}
-
-interface Vehicle {
-    _id: string;
-    name: string;
-    type: "car" | "bike";
-    licensePlate: string;
-    pricePerDay: number;
-    isAvailable: boolean;
-    vehicleImageUrl?: ImageUrl[];
-}
+import { providerApi, Vehicle, VehicleImage } from "@/lib/apiClient";
 
 export default function EditVehiclePage() {
     const router = useRouter();
@@ -35,7 +20,7 @@ export default function EditVehiclePage() {
     const [isDeleting, setIsDeleting] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-    const [imageUrls, setImageUrls] = useState<ImageUrl[]>([]);
+    const [imageUrls, setImageUrls] = useState<VehicleImage[]>([]);
     const [isUpdatingImages, setIsUpdatingImages] = useState(false);
 
     const [formData, setFormData] = useState({
@@ -44,6 +29,7 @@ export default function EditVehiclePage() {
         licensePlate: "",
         pricePerDay: "",
         isAvailable: true,
+        pickupStation: "",
     });
 
     // Fetch vehicle data
@@ -78,8 +64,9 @@ export default function EditVehiclePage() {
                     licensePlate: vehicle.licensePlate,
                     pricePerDay: vehicle.pricePerDay.toString(),
                     isAvailable: vehicle.isAvailable,
+                    pickupStation: vehicle.pickupStation || "",
                 });
-                setImageUrls(vehicle.vehicleImageUrl || []);
+                setImageUrls(vehicle.vehicleImageUrl as VehicleImage[] || []);
             } catch (err) {
                 setError(err instanceof Error ? err.message : "Failed to load vehicle");
             } finally {
@@ -100,6 +87,7 @@ export default function EditVehiclePage() {
                 name: formData.name,
                 pricePerDay: Number(formData.pricePerDay),
                 isAvailable: formData.isAvailable,
+                pickupStation: formData.pickupStation,
             });
 
             if (apiError) {
@@ -236,6 +224,22 @@ export default function EditVehiclePage() {
                                 value={formData.pricePerDay}
                                 onChange={(e) => setFormData({ ...formData, pricePerDay: e.target.value })}
                                 className="w-full px-4 py-3 rounded-xl border border-input bg-background focus:outline-none focus:ring-2 focus:ring-ring transition-all"
+                            />
+                        </div>
+
+                        {/* Pickup Station */}
+                        <div>
+                            <label htmlFor="pickupStation" className="block text-sm font-medium mb-1.5">
+                                Pickup Station
+                            </label>
+                            <input
+                                id="pickupStation"
+                                type="text"
+                                required
+                                value={formData.pickupStation}
+                                onChange={(e) => setFormData({ ...formData, pickupStation: e.target.value })}
+                                className="w-full px-4 py-3 rounded-xl border border-input bg-background focus:outline-none focus:ring-2 focus:ring-ring transition-all"
+                                placeholder="e.g., Mumbai Central Station"
                             />
                         </div>
 

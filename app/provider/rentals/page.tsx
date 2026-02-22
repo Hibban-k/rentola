@@ -253,7 +253,7 @@ export default function ProviderBookingsPage() {
                                         </div>
                                         <div className="flex items-center gap-2 text-muted-foreground">
                                             <MapPin className="w-4 h-4 shrink-0" />
-                                            <span className="truncate">{booking.pickupLocation}</span>
+                                            <span className="truncate">{booking.vehicleId?.pickupStation || "Fixed Pickup Station"}</span>
                                         </div>
                                         <div className="flex items-center gap-2">
                                             <IndianRupee className="w-4 h-4 shrink-0 text-green-600" />

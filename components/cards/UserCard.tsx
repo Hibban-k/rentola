@@ -1,16 +1,8 @@
 "use client";
 
 import { User, Shield, Car } from "lucide-react";
+import { UserInfo } from "@/lib/apiClient";
 import React from "react";
-
-interface UserInfo {
-    _id: string;
-    name?: string;
-    email?: string;
-    role: "user" | "provider" | "admin";
-    providerStatus?: "pending" | "approved" | "rejected";
-    createdAt?: string;
-}
 
 interface UserCardProps {
     user: UserInfo;

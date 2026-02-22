@@ -2,6 +2,19 @@
  * API Client - Centralized helper functions for backend API calls
  */
 
+import {
+    Vehicle,
+    VehicleFilters,
+    Rental,
+    CreateRentalPayload,
+    CreateVehiclePayload,
+    SignupPayload,
+    AuthResponse,
+    Provider,
+    UserInfo,
+    VehicleImage
+} from "@/types";
+
 const API_BASE = "";
 
 // Helper to build headers
@@ -47,29 +60,6 @@ async function apiFetch<T>(
 // AUTH APIs
 // ============================================
 
-export interface SignupPayload {
-    name: string;
-    email: string;
-    password: string;
-    role: "user" | "provider";
-    imageurl?: string;
-    documents?: {
-        type: string;
-        url: string;
-    }[];
-}
-
-export interface AuthResponse {
-    token: string;
-    user: {
-        id: string;
-        name: string;
-        email: string;
-        role: "user" | "provider" | "admin";
-        providerStatus?: "pending" | "approved" | "rejected";
-    };
-}
-
 export const authApi = {
     // Signup new user (NextAuth handles signin)
     signup: (payload: SignupPayload) =>
@@ -82,28 +72,6 @@ export const authApi = {
 // ============================================
 // VEHICLES APIs (Public)
 // ============================================
-
-export interface Vehicle {
-    _id: string;
-    name: string;
-    type: "car" | "bike";
-    pricePerDay: number;
-    licensePlate: string;
-    vehicleImageUrl: { type: string; url: string }[];
-    isAvailable: boolean;
-    ownerId: string;
-    createdAt: string;
-    updatedAt: string;
-}
-
-export interface VehicleFilters {
-    type?: "car" | "bike";
-    search?: string;
-    minPrice?: number;
-    maxPrice?: number;
-    page?: number;
-    limit?: number;
-}
 
 export const vehiclesApi = {
     // List all available vehicles
@@ -129,29 +97,6 @@ export const vehiclesApi = {
 // RENTALS APIs (User)
 // ============================================
 
-export interface Rental {
-    _id: string;
-    vehicleId: Vehicle;
-    renterId: string;
-    pickupLocation: string;
-    dropOffLocation: string;
-    rentalPeriod: {
-        startDate: string;
-        endDate: string;
-    };
-    totalCost: number;
-    status: "pending" | "active" | "completed" | "cancelled";
-    createdAt: string;
-}
-
-export interface CreateRentalPayload {
-    vehicleId: string;
-    startDate: string;
-    endDate: string;
-    pickupLocation: string;
-    dropOffLocation: string;
-}
-
 export const rentalsApi = {
     // Get user's rentals
     list: () =>
@@ -171,14 +116,6 @@ export const rentalsApi = {
 // ============================================
 // PROVIDER APIs
 // ============================================
-
-export interface CreateVehiclePayload {
-    name: string;
-    type: "car" | "bike";
-    licensePlate: string;
-    pricePerDay: number;
-    vehicleImageUrl: { type: string; url: string }[];
-}
 
 export const providerApi = {
     // Get provider's vehicles
@@ -237,18 +174,9 @@ export const providerApi = {
 // ADMIN APIs
 // ============================================
 
-export interface Provider {
-    _id: string;
-    name: string;
-    email: string;
-    providerStatus: "pending" | "approved" | "rejected";
-    createdAt: string;
-    documents?: { type: string; url: string }[];
-}
-
 export const adminApi = {
     // Get all providers
-    getProviders: (status?: "pending" | "approved" | "rejected") => {
+    getProviders: (status?: Provider["providerStatus"]) => {
         const query = status ? `?status=${status}` : "";
         return apiFetch<Provider[]>(`/api/admin/providers${query}`);
     },
@@ -278,7 +206,7 @@ export const adminApi = {
         apiFetch<Provider>(`/api/admin/providers/${id}`),
 
     // Update provider status
-    updateProviderStatus: (id: string, providerStatus: "approved" | "rejected") =>
+    updateProviderStatus: (id: string, providerStatus: Provider["providerStatus"]) =>
         apiFetch<{ success: boolean; user: Provider }>(
             `/api/admin/providers/${id}`,
             {
@@ -288,7 +216,7 @@ export const adminApi = {
         ),
 
     getUsers: () =>
-        apiFetch<{ users: { _id: string; name: string; email: string; role: "user" | "provider" | "admin"; providerStatus?: "pending" | "approved" | "rejected" }[] }>("/api/admin/users"),
+        apiFetch<{ users: UserInfo[] }>("/api/admin/users"),
 
     // Get all rentals (admin)
     getAllRentals: () =>
@@ -312,3 +240,4 @@ const apiClient = {
 };
 
 export default apiClient;
+export { type Vehicle, type Rental, type UserInfo, type VehicleImage };

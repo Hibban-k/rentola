@@ -9,16 +9,8 @@ import LoadingSkeleton from "@/components/ui/LoadingSkeleton";
 import EmptyState from "@/components/ui/EmptyState";
 import ErrorState from "@/components/ui/ErrorState";
 import UserCard from "@/components/cards/UserCard";
-import { adminApi } from "@/lib/apiClient";
+import { adminApi, UserInfo } from "@/lib/apiClient";
 import { Users, Shield, Car, User as UserIcon } from "lucide-react";
-
-interface UserInfo {
-    _id: string;
-    name: string;
-    email?: string;
-    role: "user" | "provider" | "admin";
-    providerStatus?: "pending" | "approved" | "rejected";
-}
 
 type TabFilter = "all" | "user" | "provider" | "admin";
 

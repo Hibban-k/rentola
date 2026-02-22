@@ -147,9 +147,8 @@ export default function AdminRentalDetailPage({
                                     <div className="flex items-start gap-3 p-4 bg-muted/50 rounded-xl">
                                         <MapPin className="w-5 h-5 text-primary mt-0.5" />
                                         <div>
-                                            <p className="text-sm text-muted-foreground">Locations</p>
-                                            <p className="font-medium">From: {rental.pickupLocation}</p>
-                                            <p className="font-medium">To: {rental.dropOffLocation}</p>
+                                            <p className="text-sm text-muted-foreground">Pickup & Return Station</p>
+                                            <p className="font-medium">{vehicle?.pickupStation || "Fixed Pickup Station"}</p>
                                         </div>
                                     </div>
                                 </div>

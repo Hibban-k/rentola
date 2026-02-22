@@ -9,7 +9,9 @@ import {
     AlertCircle,
 } from "lucide-react";
 
-export type StatusType = "pending" | "active" | "completed" | "cancelled" | "approved" | "rejected";
+import { RentalStatus, ProviderStatus } from "@/types";
+
+export type StatusType = RentalStatus | ProviderStatus;
 
 interface StatusConfig {
     icon: LucideIcon;

@@ -7,12 +7,7 @@ import Link from "next/link";
 import DashboardLayout from "@/components/DashboardLayout";
 import ImageUpload from "@/components/ImageUpload";
 import { ArrowLeft, Car, Bike, AlertCircle } from "lucide-react";
-import { providerApi } from "@/lib/apiClient";
-
-interface ImageUrl {
-    type: string;
-    url: string;
-}
+import { providerApi, VehicleImage } from "@/lib/apiClient";
 
 export default function AddVehiclePage() {
     const router = useRouter();
@@ -25,9 +20,10 @@ export default function AddVehiclePage() {
         type: "car" as "car" | "bike",
         licensePlate: "",
         pricePerDay: "",
+        pickupStation: "",
     });
 
-    const [imageUrls, setImageUrls] = useState<ImageUrl[]>([]);
+    const [imageUrls, setImageUrls] = useState<VehicleImage[]>([]);
 
     const handleSubmit = async (e: FormEvent) => {
         e.preventDefault();
@@ -52,6 +48,7 @@ export default function AddVehiclePage() {
                 licensePlate: formData.licensePlate,
                 pricePerDay: Number(formData.pricePerDay),
                 vehicleImageUrl: imageUrls,
+                pickupStation: formData.pickupStation,
             });
 
             if (apiError) {
@@ -166,6 +163,22 @@ export default function AddVehiclePage() {
                                 onChange={(e) => setFormData({ ...formData, pricePerDay: e.target.value })}
                                 className="w-full px-4 py-3 rounded-xl border border-input bg-background focus:outline-none focus:ring-2 focus:ring-ring transition-all"
                                 placeholder="e.g., 2500"
+                            />
+                        </div>
+
+                        {/* Pickup Station */}
+                        <div>
+                            <label htmlFor="pickupStation" className="block text-sm font-medium mb-1.5">
+                                Pickup Station
+                            </label>
+                            <input
+                                id="pickupStation"
+                                type="text"
+                                required
+                                value={formData.pickupStation}
+                                onChange={(e) => setFormData({ ...formData, pickupStation: e.target.value })}
+                                className="w-full px-4 py-3 rounded-xl border border-input bg-background focus:outline-none focus:ring-2 focus:ring-ring transition-all"
+                                placeholder="e.g., Mumbai Central Station"
                             />
                         </div>
 
