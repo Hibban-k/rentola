@@ -27,14 +27,7 @@ export const authOptions: AuthOptions = {
                     throw new Error("Invalid email or password");
                 }
 
-                // Return plain object for better session persistence (avoid Mongoose document issues)
-                return {
-                    id: user._id.toString(),
-                    name: user.name,
-                    email: user.email,
-                    role: user.role,
-                    providerStatus: user.providerStatus
-                };
+                return user;
             },
         }),
     ],
