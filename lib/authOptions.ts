@@ -27,7 +27,14 @@ export const authOptions: AuthOptions = {
                     throw new Error("Invalid email or password");
                 }
 
-                return user;
+                // Return plain object for better session persistence (avoid Mongoose document issues)
+                return {
+                    id: user._id.toString(),
+                    name: user.name,
+                    email: user.email,
+                    role: user.role,
+                    providerStatus: user.providerStatus
+                };
             },
         }),
     ],
@@ -35,8 +42,8 @@ export const authOptions: AuthOptions = {
         async jwt({ token, user }) {
             if (user) {
                 token.id = user.id;
-                token.role= user.role;
-                token.providerStatus= user.providerStatus;
+                token.role = user.role;
+                token.providerStatus = user.providerStatus;
             }
             return token;
         },
