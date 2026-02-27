@@ -1,19 +1,22 @@
 "use client";
 
-import { useState, FormEvent } from "react";
+import { useState, useActionState, useEffect, startTransition } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import DashboardLayout from "@/components/DashboardLayout";
 import ImageUpload from "@/components/ImageUpload";
 import { ArrowLeft, Car, Bike, AlertCircle } from "lucide-react";
-import { providerApi, VehicleImage } from "@/lib/apiClient";
+import { VehicleImage } from "@/lib/apiClient";
+import { createVehicleAction } from "@/lib/actions/vehicle.actions";
+import PlatformChargeInfo from "@/components/ui/PlatformChargeInfo";
 
 export default function AddVehiclePage() {
     const router = useRouter();
-    const { status } = useSession();
-    const [isLoading, setIsLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+    const { status: authStatus } = useSession();
+
+    // Server Action State
+    const [state, formAction, isPending] = useActionState(createVehicleAction, null);
 
     const [formData, setFormData] = useState({
         name: "",
@@ -25,24 +28,29 @@ export default function AddVehiclePage() {
 
     const [imageUrls, setImageUrls] = useState<VehicleImage[]>([]);
 
-    const handleSubmit = async (e: FormEvent) => {
+    // Handle Server Action responses
+    useEffect(() => {
+        if (state?.success) {
+            router.push("/provider/dashboard");
+        }
+    }, [state, router]);
+
+    const onSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        setError(null);
 
         if (imageUrls.length === 0) {
-            setError("Please add at least one image URL");
+            // we could handle this local error or pass to state
             return;
         }
 
-        if (status === "unauthenticated") {
+        if (authStatus === "unauthenticated") {
             router.push("/auth");
             return;
         }
 
-        setIsLoading(true);
-
-        try {
-            const { data, error: apiError } = await providerApi.createVehicle({
+        // Trigger the Server Action
+        startTransition(() => {
+            formAction({
                 name: formData.name,
                 type: formData.type,
                 licensePlate: formData.licensePlate,
@@ -50,17 +58,7 @@ export default function AddVehiclePage() {
                 vehicleImageUrl: imageUrls,
                 pickupStation: formData.pickupStation,
             });
-
-            if (apiError) {
-                throw new Error(apiError || "Failed to create vehicle");
-            }
-
-            router.push("/provider/dashboard");
-        } catch (err) {
-            setError(err instanceof Error ? err.message : "Something went wrong");
-        } finally {
-            setIsLoading(false);
-        }
+        });
     };
 
     return (
@@ -80,14 +78,16 @@ export default function AddVehiclePage() {
 
                 {/* Form */}
                 <div className="bg-card border border-border rounded-2xl p-6">
-                    {error && (
+                    {(state?.error || (imageUrls.length === 0 && state === null)) && (
                         <div className="flex items-center gap-3 p-4 rounded-xl bg-destructive/10 border border-destructive/20 mb-6">
                             <AlertCircle className="w-5 h-5 text-destructive shrink-0" />
-                            <p className="text-sm text-destructive">{error}</p>
+                            <p className="text-sm text-destructive">
+                                {state?.error || (imageUrls.length === 0 ? "Please add at least one image URL" : "")}
+                            </p>
                         </div>
                     )}
 
-                    <form onSubmit={handleSubmit} className="space-y-6">
+                    <form onSubmit={onSubmit} className="space-y-6">
                         {/* Vehicle Name */}
                         <div>
                             <label htmlFor="name" className="block text-sm font-medium mb-1.5">
@@ -200,13 +200,16 @@ export default function AddVehiclePage() {
                             )}
                         </div>
 
+                        {/* Platform Charge */}
+                        <PlatformChargeInfo />
+
                         {/* Submit */}
                         <button
                             type="submit"
-                            disabled={isLoading}
+                            disabled={isPending}
                             className="w-full py-3 px-4 bg-primary text-primary-foreground font-semibold rounded-xl hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                         >
-                            {isLoading ? "Creating..." : "Add Vehicle"}
+                            {isPending ? "Creating..." : "Add Vehicle"}
                         </button>
                     </form>
                 </div>

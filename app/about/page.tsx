@@ -230,7 +230,7 @@ export default function AboutPage() {
             {/* CTA Section */}
             <section className="py-20 px-4">
                 <div className="container mx-auto max-w-4xl">
-                    <div className="bg-gradient-to-r from-primary/10 via-primary/5 to-primary/10 border border-primary/20 rounded-3xl p-12 text-center">
+                    <div className="bg-linear-to-r from-primary/10 via-primary/5 to-primary/10 border border-primary/20 rounded-3xl p-12 text-center">
                         <h2 className="text-3xl md:text-4xl font-bold mb-4">
                             Ready to Get Started?
                         </h2>

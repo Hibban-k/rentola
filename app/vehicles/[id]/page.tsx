@@ -8,6 +8,7 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Car, Bike, ArrowLeft, Calendar, User, ChevronLeft, ChevronRight } from "lucide-react";
 import { vehiclesApi, Vehicle } from "@/lib/apiClient";
+import ResponsiveImage from "@/components/ui/ResponsiveImage";
 
 export default function VehicleDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = use(params);
@@ -109,40 +110,28 @@ export default function VehicleDetailPage({ params }: { params: Promise<{ id: st
                         {/* Image Gallery */}
                         <div className="space-y-4">
                             <div className="relative aspect-video bg-muted rounded-2xl overflow-hidden">
-                                {vehicle.vehicleImageUrl && vehicle.vehicleImageUrl.length > 0 ? (
+                                <ResponsiveImage
+                                    src={vehicle.vehicleImageUrl?.[currentImageIndex]?.url || ""}
+                                    alt={vehicle.name}
+                                    fallbackType={vehicle.type === "car" ? "car" : "bike"}
+                                    aspectRatio="video"
+                                    priority
+                                />
+                                {vehicle.vehicleImageUrl && vehicle.vehicleImageUrl.length > 1 && (
                                     <>
-                                        <Image
-                                            src={vehicle.vehicleImageUrl[currentImageIndex].url}
-                                            alt={vehicle.name}
-                                            fill
-                                            className="object-cover"
-                                            priority
-                                        />
-                                        {vehicle.vehicleImageUrl.length > 1 && (
-                                            <>
-                                                <button
-                                                    onClick={prevImage}
-                                                    className="absolute left-4 top-1/2 -translate-y-1/2 p-2 bg-background/80 backdrop-blur-sm rounded-full hover:bg-background transition-colors"
-                                                >
-                                                    <ChevronLeft className="w-5 h-5" />
-                                                </button>
-                                                <button
-                                                    onClick={nextImage}
-                                                    className="absolute right-4 top-1/2 -translate-y-1/2 p-2 bg-background/80 backdrop-blur-sm rounded-full hover:bg-background transition-colors"
-                                                >
-                                                    <ChevronRight className="w-5 h-5" />
-                                                </button>
-                                            </>
-                                        )}
+                                        <button
+                                            onClick={prevImage}
+                                            className="absolute left-4 top-1/2 -translate-y-1/2 p-2 bg-background/80 backdrop-blur-sm rounded-full hover:bg-background transition-colors z-10"
+                                        >
+                                            <ChevronLeft className="w-5 h-5" />
+                                        </button>
+                                        <button
+                                            onClick={nextImage}
+                                            className="absolute right-4 top-1/2 -translate-y-1/2 p-2 bg-background/80 backdrop-blur-sm rounded-full hover:bg-background transition-colors z-10"
+                                        >
+                                            <ChevronRight className="w-5 h-5" />
+                                        </button>
                                     </>
-                                ) : (
-                                    <div className="w-full h-full flex items-center justify-center">
-                                        {vehicle.type === "car" ? (
-                                            <Car className="w-24 h-24 text-muted-foreground" />
-                                        ) : (
-                                            <Bike className="w-24 h-24 text-muted-foreground" />
-                                        )}
-                                    </div>
                                 )}
                             </div>
 

@@ -28,6 +28,35 @@ export class AdminController {
             );
         }
     }
+
+    /**
+     * Handle GET /api/admin/providers
+     */
+    async getProviders(request: NextRequest) {
+        try {
+            await getAdminSession();
+            const { searchParams } = new URL(request.url);
+            const status = searchParams.get("status");
+
+            // For now, "providers" are anyone who has a providerStatus
+            // In a real app, you might want to filter by role or a boolean
+            const allUsers = await adminService.getAllProviders();
+
+            let providers = allUsers.filter(u => u.providerStatus !== undefined);
+
+            if (status && status !== "all") {
+                providers = providers.filter(p => p.providerStatus === status);
+            }
+
+            return NextResponse.json(providers);
+        } catch (error: any) {
+            console.error("[AdminController.getProviders]", error);
+            return NextResponse.json(
+                { error: error.message || "Unauthorized" },
+                { status: error.status || 401 }
+            );
+        }
+    }
 }
 
 export const adminController = new AdminController();

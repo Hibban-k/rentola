@@ -7,6 +7,7 @@ export interface IUser extends Document {
     password: string;
     role: 'user' | 'provider' | 'admin';
     imageUrl?: string;
+    licenseImageUrl?: string;
     providerStatus: 'pending' | 'approved' | 'rejected';
     createdAt: Date;
     updatedAt: Date;
@@ -30,6 +31,7 @@ const UserSchema: Schema<IUser> = new Schema(
 
         },
         imageUrl: { type: String },
+        licenseImageUrl: { type: String },
         documents: [
             {
                 type: { type: String, required: true },

@@ -26,6 +26,8 @@ export function AuthContent() {
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const licenseInputRef = useRef<HTMLInputElement>(null);
+    const [licensePhoto, setLicensePhoto] = useState<UploadedFile | null>(null);
 
     const [formData, setFormData] = useState({
         name: "",
@@ -80,6 +82,40 @@ export function AuthContent() {
         }
     };
 
+    const handleLicenseSelect = (e: ChangeEvent<HTMLInputElement>) => {
+        const files = e.target.files;
+        if (!files || files.length === 0) return;
+
+        const file = files[0];
+        const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
+
+        if (!allowedTypes.includes(file.type)) {
+            setError("Please upload a valid image (JPG, PNG, or WebP) for your license");
+            return;
+        }
+
+        if (file.size > 5 * 1024 * 1024) {
+            setError("File size must be less than 5MB");
+            return;
+        }
+
+        const newFile: UploadedFile = {
+            file,
+            type: "license",
+            previewUrl: URL.createObjectURL(file),
+        };
+
+        setLicensePhoto(newFile);
+        setError(null);
+    };
+
+    const removeLicensePhoto = () => {
+        if (licensePhoto?.previewUrl) {
+            URL.revokeObjectURL(licensePhoto.previewUrl);
+        }
+        setLicensePhoto(null);
+    };
+
     const removeFile = (index: number) => {
         setUploadedFiles(prev => {
             const updated = [...prev];
@@ -126,6 +162,10 @@ export function AuthContent() {
                 setError("Please upload at least one document (license or ID) to register as a provider");
                 return;
             }
+            if (!licensePhoto) {
+                setError("Please upload your license photo");
+                return;
+            }
         }
 
         setIsLoading(true);
@@ -169,6 +209,7 @@ export function AuthContent() {
                     password: formData.password,
                     role: role,
                     documents: role === "provider" ? documents : undefined,
+                    licenseImageUrl: licensePhoto ? await fileToBase64(licensePhoto.file) : undefined,
                 });
 
                 if (apiError) {
@@ -339,6 +380,57 @@ export function AuthContent() {
                                             {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                                         </button>
                                     </div>
+                                </div>
+
+                                {/* License Photo Upload */}
+                                <div>
+                                    <label className="block text-sm font-medium mb-1.5">
+                                        License Photo <span className="text-destructive">*</span>
+                                    </label>
+                                    <p className="text-xs text-muted-foreground mb-3">
+                                        Upload a clear photo of your driver&apos;s license
+                                    </p>
+
+                                    <input
+                                        ref={licenseInputRef}
+                                        type="file"
+                                        accept=".jpg,.jpeg,.png,.webp"
+                                        onChange={handleLicenseSelect}
+                                        className="hidden"
+                                    />
+
+                                    {!licensePhoto ? (
+                                        <button
+                                            type="button"
+                                            onClick={() => licenseInputRef.current?.click()}
+                                            className="w-full p-6 border-2 border-dashed border-border rounded-xl hover:border-primary/50 hover:bg-muted/50 transition-all flex flex-col items-center gap-2 text-muted-foreground"
+                                        >
+                                            <Upload className="w-8 h-8" />
+                                            <span>Click to upload license photo</span>
+                                        </button>
+                                    ) : (
+                                        <div className="relative group">
+                                            <div className="bg-muted rounded-xl p-2 border border-border">
+                                                <img
+                                                    src={licensePhoto.previewUrl}
+                                                    alt="License preview"
+                                                    className="w-full h-40 object-cover rounded-lg"
+                                                />
+                                                <div className="flex items-center justify-between mt-2 px-1">
+                                                    <span className="text-xs font-medium truncate max-w-[200px]">
+                                                        {licensePhoto.file.name}
+                                                    </span>
+                                                    <button
+                                                        type="button"
+                                                        onClick={removeLicensePhoto}
+                                                        className="p-1.5 bg-destructive/10 hover:bg-destructive/20 text-destructive rounded-lg transition-colors"
+                                                    >
+                                                        <X className="w-4 h-4" />
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
 
                                 {/* Role Selection */}

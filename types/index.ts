@@ -81,6 +81,7 @@ export interface SignupPayload {
     password: string;
     role: "user" | "provider";
     imageurl?: string;
+    licenseImageUrl?: string;
     documents?: {
         type: string;
         url: string;
@@ -113,3 +114,9 @@ export interface APIResponse<T> {
     data?: T;
     error?: string;
 }
+
+export type ActionResponse<T = any> = {
+    success: boolean;
+    data?: T;
+    error?: string;
+};

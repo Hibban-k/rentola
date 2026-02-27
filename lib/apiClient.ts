@@ -240,4 +240,4 @@ const apiClient = {
 };
 
 export default apiClient;
-export { type Vehicle, type Rental, type UserInfo, type VehicleImage };
+export { type Vehicle, type Rental, type UserInfo, type VehicleImage, type Provider };

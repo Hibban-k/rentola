@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminSession } from "@/lib/auth";
 import User from "@/models/User";
-import { canChangeProviderStatus } from "@/lib/stateRules";
+import { canChangeProviderStatus } from "@/lib/rentalRules/lifecycle";
 import { connectToDatabase } from "@/lib/db";
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {

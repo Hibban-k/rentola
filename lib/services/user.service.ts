@@ -5,7 +5,7 @@ import { SignupPayload } from "@/types";
 export class UserService {
     async register(payload: SignupPayload) {
         await connectToDatabase();
-        const { name, email, password } = payload;
+        const { name, email, password, role, licenseImageUrl, documents } = payload;
 
         const existingUser = await userRepository.findByEmail(email);
         if (existingUser) {
@@ -16,7 +16,9 @@ export class UserService {
             name,
             email,
             password,
-            role: "user"
+            role: role || "user",
+            licenseImageUrl,
+            documents
         });
     }
 

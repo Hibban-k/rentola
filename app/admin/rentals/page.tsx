@@ -71,10 +71,11 @@ export default function AdminRentalsPage() {
         cancelled: rentals.filter((r) => r.status === "cancelled").length,
     };
 
-    // Calculate total revenue
+    // Calculate total revenue (₹9 from renter + ₹9 from provider = ₹18 per rental)
+    const platformFeePerRental = 18;
     const totalRevenue = rentals
         .filter((r) => r.status === "completed" || r.status === "active")
-        .reduce((sum, r) => sum + r.totalCost, 0);
+        .length * platformFeePerRental;
 
     return (
         <DashboardLayout role="admin">
@@ -144,7 +145,7 @@ export default function AdminRentalsPage() {
                 <ErrorState message={error} onRetry={fetchRentals} />
             ) : filteredRentals.length === 0 ? (
                 <EmptyState
-                    icon={Calendar}
+                    icon={<Calendar className="w-16 h-16 text-muted-foreground" />}
                     title={activeTab === "all" ? "No rentals yet" : `No ${activeTab} rentals`}
                     description="Rental bookings will appear here."
                 />

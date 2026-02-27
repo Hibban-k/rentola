@@ -10,7 +10,7 @@ import PageHeader from "@/components/ui/PageHeader";
 import LoadingSkeleton from "@/components/ui/LoadingSkeleton";
 import ErrorState from "@/components/ui/ErrorState";
 import StatusBadge, { StatusType } from "@/components/ui/StatusBadge";
-import { adminApi, Provider } from "@/lib/apiClient";
+import { adminApi, providerApi, Provider } from "@/lib/apiClient";
 
 export default function AdminProviderDetailPage({
     params
@@ -119,7 +119,7 @@ export default function AdminProviderDetailPage({
                                         <p className="text-muted-foreground">{provider.email}</p>
                                     </div>
                                 </div>
-                                <StatusBadge status={statusMap[provider.providerStatus]} />
+                                <StatusBadge status={statusMap[provider.providerStatus as keyof typeof statusMap]} />
                             </div>
 
                             <div className="grid gap-4 sm:grid-cols-2">

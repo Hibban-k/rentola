@@ -11,6 +11,11 @@ export class AdminService {
         await connectToDatabase();
         return userRepository.update(userId, { providerStatus: "rejected" });
     }
+
+    async getAllProviders() {
+        await connectToDatabase();
+        return userRepository.findByRole("provider");
+    }
 }
 
 export const adminService = new AdminService();

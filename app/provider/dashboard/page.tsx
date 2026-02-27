@@ -1,92 +1,42 @@
-"use client";
-
-import { useState, useEffect } from "react";
-import { useSession } from "next-auth/react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { redirect } from "next/navigation";
 import { Car, Plus, Package, CheckCircle2, Calendar } from "lucide-react";
 import DashboardLayout from "@/components/DashboardLayout";
 import PageHeader from "@/components/ui/PageHeader";
-import LoadingSkeleton from "@/components/ui/LoadingSkeleton";
 import EmptyState from "@/components/ui/EmptyState";
-import ErrorState from "@/components/ui/ErrorState";
 import VehicleCard from "@/components/cards/VehicleCard";
-import { providerApi, Vehicle } from "@/lib/apiClient";
+import { vehicleService } from "@/lib/services/vehicle.service";
+import { rentalService } from "@/lib/services/rental.service";
+import { getProviderSession } from "@/lib/auth";
+import { Vehicle, Rental } from "@/lib/apiClient";
+import { connectToDatabase } from "@/lib/db";
+import RentalModel from "@/models/Rental";
 
-export default function ProviderDashboardPage() {
-    const router = useRouter();
-    const [vehicles, setVehicles] = useState<Vehicle[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
-    const [providerStatus, setProviderStatus] = useState<string>("");
+export default async function ProviderDashboardPage() {
+    const session = await getProviderSession().catch(() => null);
 
-    const { data: session, status } = useSession();
+    if (!session) {
+        redirect("/auth");
+    }
 
-    useEffect(() => {
-        if (status === "loading") return;
+    if (session.providerStatus === "pending" || session.providerStatus === "rejected") {
+        redirect("/provider/pending");
+    }
 
-        if (status === "unauthenticated") {
-            router.push("/auth");
-            return;
-        }
+    const rawVehicles = await vehicleService.getProviderVehicles(session.id!);
+    const vehicles = JSON.parse(JSON.stringify(rawVehicles)) as Vehicle[];
 
-        if (session?.user?.role !== "provider" && session?.user?.role !== "admin") {
-            router.push("/unauthorized");
-            return;
-        }
+    await connectToDatabase();
+    const vehicleIds = vehicles.map(v => v._id);
+    const providerRentals = await RentalModel.find({
+        vehicleId: { $in: vehicleIds },
+        status: { $in: ["active", "completed"] }
+    }).lean();
 
-        setProviderStatus(session.user.providerStatus || "");
+    const totalEarnings = providerRentals.reduce((sum, r) => sum + (r.totalCost - 18), 0);
 
-        if (session.user.providerStatus === "pending" || session.user.providerStatus === "rejected") {
-            router.push("/provider/pending");
-            return;
-        }
-
-        fetchVehicles();
-    }, [router, status, session]);
-
-    const fetchVehicles = async () => {
-        setIsLoading(true);
-        setError(null);
-        try {
-            const { data, error: apiError } = await providerApi.getVehicles();
-
-            if (apiError) {
-                throw new Error(apiError);
-            }
-
-            setVehicles((data?.vehicles as Vehicle[]) || []);
-        } catch (err) {
-            setError(err instanceof Error ? err.message : "Failed to load vehicles");
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    const handleToggleAvailability = async (vehicleId: string, isAvailable: boolean) => {
-        try {
-            const { error: apiError } = await providerApi.updateVehicle(vehicleId, {
-                isAvailable: !isAvailable,
-            });
-
-            if (!apiError) {
-                setVehicles((prev) =>
-                    prev.map((v) =>
-                        v._id === vehicleId ? { ...v, isAvailable: !isAvailable } : v
-                    )
-                );
-            }
-        } catch (err) {
-            console.error("Failed to toggle availability:", err);
-        }
-    };
-
-    const handleDeleteVehicle = async (vehicleId: string) => {
-        const { error: apiError } = await providerApi.deleteVehicle(vehicleId);
-        if (!apiError) {
-            setVehicles((prev) => prev.filter((v) => v._id !== vehicleId));
-        }
-    };
+    const availableCount = vehicles.filter((v) => v.isAvailable).length;
+    const unavailableCount = vehicles.filter((v) => !v.isAvailable).length;
 
     return (
         <DashboardLayout role="provider">
@@ -123,9 +73,7 @@ export default function ProviderDashboardPage() {
                             <CheckCircle2 className="w-6 h-6 text-emerald-500" />
                         </div>
                         <div>
-                            <p className="text-2xl font-bold">
-                                {vehicles.filter((v) => v.isAvailable).length}
-                            </p>
+                            <p className="text-2xl font-bold">{availableCount}</p>
                             <p className="text-sm text-muted-foreground">Available</p>
                         </div>
                     </div>
@@ -136,23 +84,28 @@ export default function ProviderDashboardPage() {
                             <Calendar className="w-6 h-6 text-amber-500" />
                         </div>
                         <div>
-                            <p className="text-2xl font-bold">
-                                {vehicles.filter((v) => !v.isAvailable).length}
-                            </p>
+                            <p className="text-2xl font-bold">{unavailableCount}</p>
                             <p className="text-sm text-muted-foreground">Unavailable</p>
+                        </div>
+                    </div>
+                </div>
+                <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-2xl p-6">
+                    <div className="flex items-center gap-4">
+                        <div className="p-3 bg-emerald-500/10 rounded-xl">
+                            <CheckCircle2 className="w-6 h-6 text-emerald-500" />
+                        </div>
+                        <div>
+                            <p className="text-2xl font-bold text-emerald-600">₹{totalEarnings.toLocaleString()}</p>
+                            <p className="text-sm text-emerald-600/70">Total Earnings</p>
                         </div>
                     </div>
                 </div>
             </div>
 
             {/* Vehicles List */}
-            {isLoading ? (
-                <LoadingSkeleton variant="card" count={3} />
-            ) : error ? (
-                <ErrorState message={error} onRetry={fetchVehicles} />
-            ) : vehicles.length === 0 ? (
+            {vehicles.length === 0 ? (
                 <EmptyState
-                    icon={Car}
+                    icon={<Car className="w-16 h-16 text-muted-foreground" />}
                     title="No vehicles listed"
                     description="Start by adding your first vehicle to the platform."
                     actionLabel="Add Your First Vehicle"
@@ -165,8 +118,6 @@ export default function ProviderDashboardPage() {
                             key={vehicle._id}
                             vehicle={vehicle}
                             variant="provider"
-                            onToggleAvailability={() => handleToggleAvailability(vehicle._id, vehicle.isAvailable)}
-                            onDelete={() => handleDeleteVehicle(vehicle._id)}
                         />
                     ))}
                 </div>

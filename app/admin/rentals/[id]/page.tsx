@@ -186,15 +186,23 @@ export default function AdminRentalDetailPage({
                     <div className="space-y-6">
                         {/* Price Summary */}
                         <div className="bg-card border border-border rounded-2xl p-6">
-                            <h3 className="font-semibold mb-4">Booking Summary</h3>
+                            <h3 className="font-semibold mb-4">Financial Summary</h3>
                             <div className="space-y-3">
                                 <div className="flex justify-between text-sm">
-                                    <span className="text-muted-foreground">Daily Rate</span>
-                                    <span>₹{vehicle?.pricePerDay?.toLocaleString() || 0}/day</span>
+                                    <span className="text-muted-foreground">Total Paid by Renter</span>
+                                    <span>₹{rental.totalCost.toLocaleString()}</span>
+                                </div>
+                                <div className="flex justify-between text-sm font-medium text-primary">
+                                    <span>Platform Revenue</span>
+                                    <span>₹18</span>
+                                </div>
+                                <div className="flex justify-between text-sm text-muted-foreground">
+                                    <span>Provider Share</span>
+                                    <span>₹{(rental.totalCost - 18).toLocaleString()}</span>
                                 </div>
                                 <div className="border-t border-border pt-3 flex justify-between font-bold text-lg">
-                                    <span>Total Earnings</span>
-                                    <span className="text-primary">₹{rental.totalCost.toLocaleString()}</span>
+                                    <span>Net Platform Gain</span>
+                                    <span className="text-primary">₹18</span>
                                 </div>
                             </div>
                         </div>

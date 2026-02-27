@@ -1,6 +1,8 @@
-// lib/ownership.ts → is this resource yours?
-
 import Vehicle from "@/models/Vehicle";
+
+/**
+ * Handles resource ownership and role-based access control.
+ */
 
 /**
  * Check if the user is the owner of the vehicle
@@ -26,4 +28,24 @@ export async function getVehicleWithOwnership(vehicleId: string, userId: string)
         vehicle,
         isOwner: vehicle.ownerId.toString() === userId
     };
+}
+
+/**
+ * Check if a user with a specific role can cancel a rental with a certain status
+ */
+export function canCancelRental(
+    role: "user" | "provider" | "admin" | string,
+    status: "pending" | "active" | "completed" | "cancelled" | string
+): boolean {
+    if (role === "admin") return true;
+
+    if (role === "provider" && (status === "pending" || status === "active")) {
+        return true;
+    }
+
+    if (role === "user" && status === "pending") {
+        return true;
+    }
+
+    return false;
 }

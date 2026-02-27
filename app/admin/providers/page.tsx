@@ -1,116 +1,39 @@
-"use client";
-
-import { useState, useEffect } from "react";
-import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { redirect } from "next/navigation";
 import DashboardLayout from "@/components/DashboardLayout";
 import PageHeader from "@/components/ui/PageHeader";
-import LoadingSkeleton from "@/components/ui/LoadingSkeleton";
 import EmptyState from "@/components/ui/EmptyState";
-import ErrorState from "@/components/ui/ErrorState";
 import ProviderCard from "@/components/cards/ProviderCard";
-import { adminApi } from "@/lib/apiClient";
+import { adminService } from "@/lib/services/admin.service";
+import { getAuthSession } from "@/lib/auth";
 import { Users, CheckCircle2, Clock, XCircle } from "lucide-react";
+import AdminTabs from "../dashboard/AdminTabs";
 
-interface Provider {
-    _id: string;
-    email?: string;
-    providerStatus: "pending" | "approved" | "rejected";
-    createdAt?: string;
-}
+export default async function AdminProvidersPage({
+    searchParams
+}: {
+    searchParams: Promise<{ status?: string }>
+}) {
+    const session = await getAuthSession();
 
-type TabFilter = "all" | "pending" | "approved" | "rejected";
+    if (!session || session.role !== "admin") {
+        redirect("/auth");
+    }
 
-export default function AdminProvidersPage() {
-    const router = useRouter();
-    const [providers, setProviders] = useState<Provider[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
-    const [isActionLoading, setIsActionLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
-    const [activeTab, setActiveTab] = useState<TabFilter>("all");
+    const { status: activeStatus } = await searchParams;
+    const activeTab = activeStatus || "all";
 
-    const { data: session, status } = useSession();
+    const rawProviders = await adminService.getAllProviders();
+    const providers = JSON.parse(JSON.stringify(rawProviders));
 
-    useEffect(() => {
-        if (status === "loading") return;
-
-        if (status === "unauthenticated") {
-            router.push("/auth");
-            return;
-        }
-
-        if (session?.user?.role !== "admin") {
-            router.push("/unauthorized");
-            return;
-        }
-
-        fetchProviders();
-    }, [router, status, session]);
-
-    const fetchProviders = async () => {
-        setIsLoading(true);
-        setError(null);
-        try {
-            const { data, error: apiError } = await adminApi.getProviders();
-
-            if (apiError) {
-                throw new Error(apiError);
-            }
-
-            // Ensure data is always an array
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const providersList = Array.isArray(data) ? data : ((data as any)?.providers || []);
-            setProviders(providersList);
-        } catch (err) {
-            setError(err instanceof Error ? err.message : "Failed to load providers");
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    const handleApprove = async (id: string) => {
-        setIsActionLoading(true);
-        try {
-            const { error: apiError } = await adminApi.approveProvider(id);
-
-            if (apiError) {
-                throw new Error(apiError);
-            }
-
-            await fetchProviders();
-        } catch (err) {
-            setError(err instanceof Error ? err.message : "Failed to approve provider");
-        } finally {
-            setIsActionLoading(false);
-        }
-    };
-
-    const handleReject = async (id: string) => {
-        setIsActionLoading(true);
-        try {
-            const { error: apiError } = await adminApi.rejectProvider(id);
-
-            if (apiError) {
-                throw new Error(apiError);
-            }
-
-            await fetchProviders();
-        } catch (err) {
-            setError(err instanceof Error ? err.message : "Failed to reject provider");
-        } finally {
-            setIsActionLoading(false);
-        }
+    const tabCounts = {
+        pending: providers.filter((p: any) => p.providerStatus === "pending").length,
+        approved: providers.filter((p: any) => p.providerStatus === "approved").length,
+        rejected: providers.filter((p: any) => p.providerStatus === "rejected").length,
     };
 
     const filteredProviders = activeTab === "all"
         ? providers
-        : providers.filter((p) => p.providerStatus === activeTab);
-
-    const tabCounts = {
-        pending: providers.filter((p) => p.providerStatus === "pending").length,
-        approved: providers.filter((p) => p.providerStatus === "approved").length,
-        rejected: providers.filter((p) => p.providerStatus === "rejected").length,
-    };
+        : providers.filter((p: any) => p.providerStatus === activeTab);
 
     return (
         <DashboardLayout role="admin">
@@ -148,47 +71,21 @@ export default function AdminProvidersPage() {
                 </div>
             </div>
 
-            {/* Tabs */}
-            <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
-                {(["all", "pending", "approved", "rejected"] as const).map((tab) => (
-                    <button
-                        key={tab}
-                        onClick={() => setActiveTab(tab)}
-                        className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${activeTab === tab
-                            ? "bg-primary text-primary-foreground"
-                            : "bg-muted hover:bg-muted/80"
-                            }`}
-                    >
-                        {tab.charAt(0).toUpperCase() + tab.slice(1)}
-                        {tab !== "all" && (
-                            <span className="ml-2 px-1.5 py-0.5 rounded-full text-xs bg-background/20">
-                                {tabCounts[tab]}
-                            </span>
-                        )}
-                    </button>
-                ))}
-            </div>
+            <AdminTabs activeTab={activeTab} baseUrl="/admin/providers" counts={tabCounts} />
 
             {/* Content */}
-            {isLoading ? (
-                <LoadingSkeleton variant="card" count={3} />
-            ) : error ? (
-                <ErrorState message={error} onRetry={fetchProviders} />
-            ) : filteredProviders.length === 0 ? (
+            {filteredProviders.length === 0 ? (
                 <EmptyState
-                    icon={Users}
+                    icon={<Users className="w-16 h-16 text-muted-foreground" />}
                     title={activeTab === "all" ? "No providers yet" : `No ${activeTab} providers`}
                     description="Provider applications will appear here."
                 />
             ) : (
                 <div className="space-y-4">
-                    {filteredProviders.map((provider) => (
+                    {filteredProviders.map((provider: any) => (
                         <ProviderCard
                             key={provider._id}
                             provider={provider}
-                            onApprove={handleApprove}
-                            onReject={handleReject}
-                            isActionLoading={isActionLoading}
                         />
                     ))}
                 </div>

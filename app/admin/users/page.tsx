@@ -131,7 +131,7 @@ export default function AdminUsersPage() {
                 <ErrorState message={error} onRetry={fetchUsers} />
             ) : filteredUsers.length === 0 ? (
                 <EmptyState
-                    icon={Users}
+                    icon={<Users className="w-16 h-16 text-muted-foreground" />}
                     title={activeTab === "all" ? "No users yet" : `No ${activeTab}s`}
                     description="Registered users will appear here."
                 />

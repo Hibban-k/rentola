@@ -101,7 +101,7 @@ export default function UserDashboardPage() {
                 <ErrorState message={error} onRetry={fetchRentals} />
             ) : filteredRentals.length === 0 ? (
                 <EmptyState
-                    icon={Car}
+                    icon={<Car className="w-16 h-16 text-muted-foreground" />}
                     title={activeTab === "all" ? "No rentals yet" : `No ${activeTab} rentals`}
                     description={
                         activeTab === "all"

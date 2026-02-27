@@ -3,8 +3,8 @@ import { getProviderSession } from "@/lib/auth";
 import Rental from "@/models/Rental";
 import { connectToDatabase } from "@/lib/db";
 import { IVehicle } from "@/models/Vehicle";
-import { isVehicleOwner } from "@/lib/ownership";
-import { canChangeRentalStatus } from "@/lib/stateRules";
+import { isVehicleOwner } from "@/lib/rentalRules/permissions";
+import { canChangeRentalStatus } from "@/lib/rentalRules/lifecycle";
 
 export async function PATCH(
     request: NextRequest,
