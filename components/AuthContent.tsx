@@ -173,6 +173,16 @@ export function AuthContent() {
         try {
             if (mode === "signin") {
                 // Use NextAuth signIn
+                // Manual signin to get token for localStorage compatibility
+                const { data: authData } = await authApi.signin({
+                    email: formData.email,
+                    password: formData.password,
+                });
+
+                if (authData?.token) {
+                    localStorage.setItem("token", authData.token);
+                }
+
                 const result = await signIn("credentials", {
                     email: formData.email,
                     password: formData.password,
@@ -217,6 +227,9 @@ export function AuthContent() {
                 }
 
                 if (data?.token) {
+                    // Store token in localStorage as per user requirement
+                    localStorage.setItem("token", data.token);
+
                     // After signup, sign in with NextAuth
                     const result = await signIn("credentials", {
                         email: formData.email,
