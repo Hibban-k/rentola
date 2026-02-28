@@ -17,27 +17,11 @@ import {
 
 const API_BASE = "";
 
-const getToken = (): string | null => {
-    if (typeof window !== "undefined") {
-        return localStorage.getItem("token");
-    }
-    return null;
-};
-
 // Helper to build headers
-const getHeaders = (authenticated = false): HeadersInit => {
-    const headers: HeadersInit = {
+const getHeaders = (): HeadersInit => {
+    return {
         "Content-Type": "application/json",
     };
-
-    if (authenticated) {
-        const token = getToken();
-        if (token) {
-            headers["Authorization"] = `Bearer ${token}`;
-        }
-    }
-
-    return headers;
 };
 
 // Generic API response type
@@ -49,14 +33,13 @@ interface ApiResponse<T> {
 // Generic fetch wrapper
 async function apiFetch<T>(
     endpoint: string,
-    options: RequestInit = {},
-    authenticated = false
+    options: RequestInit = {}
 ): Promise<ApiResponse<T>> {
     try {
         const res = await fetch(`${API_BASE}${endpoint}`, {
             ...options,
             headers: {
-                ...getHeaders(authenticated),
+                ...getHeaders(),
                 ...options.headers,
             },
         });
@@ -81,13 +64,6 @@ export const authApi = {
     // Signup new user
     signup: (payload: SignupPayload) =>
         apiFetch<AuthResponse>("/api/auth/signup", {
-            method: "POST",
-            body: JSON.stringify(payload),
-        }),
-
-    // Signin (returns token for localStorage)
-    signin: (payload: any) =>
-        apiFetch<AuthResponse>("/api/auth/signin", {
             method: "POST",
             body: JSON.stringify(payload),
         }),
@@ -124,7 +100,7 @@ export const vehiclesApi = {
 export const rentalsApi = {
     // Get user's rentals
     list: () =>
-        apiFetch<{ rentals: Rental[] }>("/api/users/rentals", {}, true),
+        apiFetch<{ rentals: Rental[] }>("/api/users/rentals"),
 
     // Create a new rental
     create: (payload: CreateRentalPayload) =>
@@ -133,8 +109,7 @@ export const rentalsApi = {
             {
                 method: "POST",
                 body: JSON.stringify(payload),
-            },
-            true
+            }
         ),
 };
 
@@ -145,11 +120,11 @@ export const rentalsApi = {
 export const providerApi = {
     // Get provider's vehicles
     getVehicles: () =>
-        apiFetch<{ vehicles: Vehicle[] }>("/api/provider/vehicles", {}, true),
+        apiFetch<{ vehicles: Vehicle[] }>("/api/provider/vehicles"),
 
     // Get single vehicle
     getVehicle: (id: string) =>
-        apiFetch<{ vehicle: Vehicle }>(`/api/provider/vehicles/${id}`, {}, true),
+        apiFetch<{ vehicle: Vehicle }>(`/api/provider/vehicles/${id}`),
 
     // Create a vehicle
     createVehicle: (payload: CreateVehiclePayload) =>
@@ -158,8 +133,7 @@ export const providerApi = {
             {
                 method: "POST",
                 body: JSON.stringify(payload),
-            },
-            true
+            }
         ),
 
     // Update vehicle (availability, etc.)
@@ -169,8 +143,7 @@ export const providerApi = {
             {
                 method: "PATCH",
                 body: JSON.stringify(updates),
-            },
-            true
+            }
         ),
 
     // Delete vehicle
@@ -179,13 +152,12 @@ export const providerApi = {
             `/api/provider/vehicles/${id}`,
             {
                 method: "DELETE",
-            },
-            true
+            }
         ),
 
     // Get provider's bookings/rentals
     getRentals: () =>
-        apiFetch<Rental[]>("/api/provider/rentals", {}, true),
+        apiFetch<Rental[]>("/api/provider/rentals"),
 
     // Update rental status (accept/reject/cancel)
     updateRentalStatus: (id: string, status: Rental["status"]) =>
@@ -194,8 +166,7 @@ export const providerApi = {
             {
                 method: "PATCH",
                 body: JSON.stringify({ status }),
-            },
-            true
+            }
         ),
 };
 
@@ -207,7 +178,7 @@ export const adminApi = {
     // Get all providers
     getProviders: (status?: Provider["providerStatus"]) => {
         const query = status ? `?status=${status}` : "";
-        return apiFetch<Provider[]>(`/api/admin/providers${query}`, {}, true);
+        return apiFetch<Provider[]>(`/api/admin/providers${query}`);
     },
 
     // Approve provider
@@ -217,8 +188,7 @@ export const adminApi = {
             {
                 method: "PATCH",
                 body: JSON.stringify({ providerStatus: "approved" }),
-            },
-            true
+            }
         ),
 
     // Reject provider
@@ -228,13 +198,12 @@ export const adminApi = {
             {
                 method: "PATCH",
                 body: JSON.stringify({ providerStatus: "rejected" }),
-            },
-            true
+            }
         ),
 
     // Get single provider
     getProvider: (id: string) =>
-        apiFetch<Provider>(`/api/admin/providers/${id}`, {}, true),
+        apiFetch<Provider>(`/api/admin/providers/${id}`),
 
     // Update provider status
     updateProviderStatus: (id: string, providerStatus: Provider["providerStatus"]) =>
@@ -243,20 +212,19 @@ export const adminApi = {
             {
                 method: "PATCH",
                 body: JSON.stringify({ providerStatus }),
-            },
-            true
+            }
         ),
 
     getUsers: () =>
-        apiFetch<{ users: UserInfo[] }>("/api/admin/users", {}, true),
+        apiFetch<{ users: UserInfo[] }>("/api/admin/users"),
 
     // Get all rentals (admin)
     getAllRentals: () =>
-        apiFetch<Rental[]>("/api/admin/rentals", {}, true),
+        apiFetch<Rental[]>("/api/admin/rentals"),
 
     // Get single rental (admin)
     getRental: (id: string) =>
-        apiFetch<{ rental: Rental }>(`/api/admin/rentals/${id}`, {}, true),
+        apiFetch<{ rental: Rental }>(`/api/admin/rentals/${id}`),
 };
 
 // ============================================
