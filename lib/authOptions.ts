@@ -1,6 +1,6 @@
 import NextAuth, { AuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
-import User from "@/models/User";
+import { userRepository } from "./repositories/user.repository";
 import { connectToDatabase } from "./db";
 import bcrypt from "bcryptjs";
 
@@ -15,7 +15,8 @@ export const authOptions: AuthOptions = {
             async authorize(credentials) {
                 await connectToDatabase();
 
-                const user = await User.findOne({ email: credentials?.email });
+                // Using userRepository is a best practice as it centralizes data access
+                const user = await userRepository.findByEmail(credentials?.email || "");
 
                 if (!user) {
                     return null;
@@ -27,7 +28,16 @@ export const authOptions: AuthOptions = {
                     throw new Error("Invalid email or password");
                 }
 
-                return user;
+                // CRITICAL: Return a plain object, NOT the Mongoose document
+                // Mongoose documents contain circular references and internal state
+                // that fail to serialize into NextAuth JWTs in production.
+                return {
+                    id: user._id.toString(),
+                    name: user.name,
+                    email: user.email,
+                    role: user.role,
+                    providerStatus: user.providerStatus,
+                };
             },
         }),
     ],
