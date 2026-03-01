@@ -7,7 +7,7 @@ import EmptyState from "@/components/ui/EmptyState";
 import ProviderCard from "@/components/cards/ProviderCard";
 import { adminService } from "@/lib/services/admin.service";
 import { rentalService } from "@/lib/services/rental.service";
-import { getAuthSession } from "@/lib/auth";
+import { getAdminSession, getAuthSession } from "@/lib/auth";
 import AdminTabs from "./AdminTabs";
 import Rental from "@/models/Rental";
 import { connectToDatabase } from "@/lib/db";

@@ -20,7 +20,7 @@ function isPublicRoute(pathname: string): boolean {
     );
 }
 
-export default async function proxy(request: NextRequest) {
+export async function proxy(request: NextRequest) {
     const { pathname } = request.nextUrl;
 
     // Allow public routes
@@ -88,6 +88,8 @@ export default async function proxy(request: NextRequest) {
 
     return NextResponse.next();
 }
+
+export default proxy;
 
 // Configure which routes the proxy should run on
 export const config = {
