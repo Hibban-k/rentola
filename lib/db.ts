@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import "@/models";
 
 const MONGODB_URI = process.env.MONGODB_URI!;
 const DB_NAME = process.env.DB_NAME || "rentola"; // Default database name
