@@ -41,7 +41,8 @@ function VehicleCard({
                     alt={vehicle.name}
                     fallbackType={vehicle.type === "car" ? "car" : "bike"}
                     aspectRatio="video"
-                    containerClassName="h-48"
+                    priority={variant === "browse"}
+                    quality={95}
                     sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
                 />
 

@@ -8,6 +8,8 @@ interface ResponsiveImageProps extends Omit<ImageProps, "onError"> {
     fallbackType?: "car" | "bike" | "image";
     aspectRatio?: "video" | "square" | "portrait" | "auto";
     containerClassName?: string;
+    priority?: boolean;
+    quality?: number;
 }
 
 export default function ResponsiveImage({
@@ -17,6 +19,8 @@ export default function ResponsiveImage({
     aspectRatio = "video",
     containerClassName = "",
     className = "",
+    priority = false,
+    quality = 90,
     ...props
 }: ResponsiveImageProps) {
     const [error, setError] = useState(false);
@@ -55,6 +59,8 @@ export default function ResponsiveImage({
                     src={src}
                     alt={alt}
                     fill
+                    priority={priority}
+                    quality={quality}
                     className={`object-cover transition-all duration-500 ${isLoading ? "scale-110 blur-sm" : "scale-100 blur-0"} ${className}`}
                     onLoadingComplete={() => setIsLoading(false)}
                     onError={() => {
