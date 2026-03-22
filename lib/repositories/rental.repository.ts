@@ -8,13 +8,35 @@ export class RentalRepository {
             .lean();
     }
 
+    async findAllRentals(status?: string): Promise<IRental[]> {
+        const query: any = {};
+        if (status && ["pending", "approved", "rejected", "active", "completed", "cancelled"].includes(status)) {
+            query.status = status;
+        }
+        return Rental.find(query)
+            .populate("vehicleId", "name vehicleImageUrl pricePerDay type")
+            .populate("renterId", "name email")
+            .sort({ createdAt: -1 })
+            .lean();
+    }
+
     async findOverlappingRental(vehicleId: string, start: Date, end: Date): Promise<IRental | null> {
         return Rental.findOne({
             vehicleId,
-            status: { $ne: 'cancelled' },
+            status: { $nin: ['cancelled', 'rejected'] },
             "rentalPeriod.startDate": { $lt: end },
             "rentalPeriod.endDate": { $gt: start }
         });
+    }
+
+    async findOverlappingVehicleIds(start: Date, end: Date): Promise<string[]> {
+        const rentals = await Rental.find({
+            status: { $in: ['active', 'approved', 'pending'] },
+            "rentalPeriod.startDate": { $lt: end },
+            "rentalPeriod.endDate": { $gt: start }
+        }).select('vehicleId').lean();
+        
+        return rentals.map(r => r.vehicleId.toString());
     }
 
     async create(data: Partial<IRental>): Promise<IRental> {

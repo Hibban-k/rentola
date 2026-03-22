@@ -7,7 +7,8 @@ import { useRouter } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Car, Bike, ArrowLeft, Calendar, User, ChevronLeft, ChevronRight } from "lucide-react";
-import { vehiclesApi, Vehicle } from "@/lib/apiClient";
+import { getVehicleAction } from "@/lib/actions/query.actions";
+import { Vehicle } from "@/types";
 import ResponsiveImage from "@/components/ui/ResponsiveImage";
 
 export default function VehicleDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -22,7 +23,7 @@ export default function VehicleDetailPage({ params }: { params: Promise<{ id: st
     useEffect(() => {
         const fetchVehicle = async () => {
             try {
-                const { data, error: apiError } = await vehiclesApi.get(id);
+                const { data, error: apiError } = await getVehicleAction(id);
 
                 if (apiError) throw new Error(apiError);
 

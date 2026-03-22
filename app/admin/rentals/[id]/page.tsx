@@ -11,7 +11,8 @@ import PageHeader from "@/components/ui/PageHeader";
 import LoadingSkeleton from "@/components/ui/LoadingSkeleton";
 import ErrorState from "@/components/ui/ErrorState";
 import StatusBadge, { StatusType } from "@/components/ui/StatusBadge";
-import { adminApi, Rental } from "@/lib/apiClient";
+import { getRentalByIdAction } from "@/lib/actions/query.actions";
+import { Rental } from "@/types";
 
 function formatDate(dateStr: string): string {
     return new Date(dateStr).toLocaleDateString("en-IN", {
@@ -54,7 +55,7 @@ export default function AdminRentalDetailPage({
         setIsLoading(true);
         setError(null);
         try {
-            const { data, error: apiError } = await adminApi.getRental(id);
+            const { data, error: apiError } = await getRentalByIdAction(id);
 
             if (apiError) {
                 throw new Error(apiError);

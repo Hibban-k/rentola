@@ -11,6 +11,11 @@ export class RentalService {
         return rentalRepository.findByRenterId(userId);
     }
 
+    async getAllRentals(status?: string) {
+        await connectToDatabase();
+        return rentalRepository.findAllRentals(status);
+    }
+
     async getProviderRentals(providerId: string) {
         await connectToDatabase();
         const vehicles = await vehicleRepository.findByOwnerId(providerId);
@@ -72,7 +77,11 @@ export class RentalService {
 
     async getRentalById(id: string) {
         await connectToDatabase();
-        const rental = await rentalRepository.findById(id);
+        const rental = await require("@/models/Rental").default.findById(id)
+            .populate("vehicleId", "name vehicleImageUrl")
+            .populate("renterId", "name email")
+            .lean();
+            
         if (!rental) {
             throw { status: 404, message: "Rental not found" };
         }

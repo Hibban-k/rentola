@@ -38,7 +38,19 @@ export default function ProfilePage() {
                     ? "/provider/dashboard"
                     : "/provider/pending";
             default:
-                return "/dashboard";
+                return "/user/rentals";
+        }
+    };
+
+    const getDashboardLabel = () => {
+        const user = session?.user;
+        if (!user) return "Dashboard";
+        switch (user.role) {
+            case "admin":
+            case "provider":
+                return "Go to Dashboard";
+            default:
+                return "Go to My Bookings";
         }
     };
 
@@ -131,7 +143,7 @@ export default function ProfilePage() {
                                 className="flex items-center justify-center gap-2 w-full px-6 py-3 bg-primary text-primary-foreground font-medium rounded-xl hover:bg-primary/90 transition-colors"
                             >
                                 <LayoutDashboard className="w-4 h-4" />
-                                Go to Dashboard
+                                {getDashboardLabel()}
                             </Link>
 
                             <button

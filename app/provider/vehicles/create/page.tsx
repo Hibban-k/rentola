@@ -7,7 +7,7 @@ import Link from "next/link";
 import DashboardLayout from "@/components/DashboardLayout";
 import ImageUpload from "@/components/ImageUpload";
 import { ArrowLeft, Car, Bike, AlertCircle } from "lucide-react";
-import { VehicleImage } from "@/lib/apiClient";
+import { VehicleImage } from "@/types";
 import { createVehicleAction } from "@/lib/actions/vehicle.actions";
 import PlatformChargeInfo from "@/components/ui/PlatformChargeInfo";
 

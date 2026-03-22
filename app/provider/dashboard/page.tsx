@@ -8,7 +8,7 @@ import VehicleCard from "@/components/cards/VehicleCard";
 import { vehicleService } from "@/lib/services/vehicle.service";
 import { rentalService } from "@/lib/services/rental.service";
 import { getProviderSession } from "@/lib/auth";
-import { Vehicle, Rental } from "@/lib/apiClient";
+import { Vehicle, Rental } from "@/types";
 import { connectToDatabase } from "@/lib/db";
 import RentalModel from "@/models/Rental";
 

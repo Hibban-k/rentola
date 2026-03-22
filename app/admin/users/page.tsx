@@ -9,7 +9,8 @@ import LoadingSkeleton from "@/components/ui/LoadingSkeleton";
 import EmptyState from "@/components/ui/EmptyState";
 import ErrorState from "@/components/ui/ErrorState";
 import UserCard from "@/components/cards/UserCard";
-import { adminApi, UserInfo } from "@/lib/apiClient";
+import { getAllUsersAction } from "@/lib/actions/query.actions";
+import { UserInfo } from "@/types";
 import { Users, Shield, Car, User as UserIcon } from "lucide-react";
 
 type TabFilter = "all" | "user" | "provider" | "admin";
@@ -43,7 +44,7 @@ export default function AdminUsersPage() {
         setIsLoading(true);
         setError(null);
         try {
-            const { data, error: apiError } = await adminApi.getUsers();
+            const { data, error: apiError } = await getAllUsersAction();
 
             if (apiError) {
                 throw new Error(apiError);

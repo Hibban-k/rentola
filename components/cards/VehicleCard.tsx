@@ -3,7 +3,7 @@
 import React, { useActionState, startTransition } from "react";
 import Link from "next/link";
 import { Car, Bike, IndianRupee, Edit2, Trash2, AlertCircle } from "lucide-react";
-import { Vehicle } from "@/lib/apiClient";
+import { Vehicle } from "@/types";
 import { updateVehicleAvailabilityAction, deleteVehicleAction } from "@/lib/actions/vehicle.actions";
 import ResponsiveImage from "@/components/ui/ResponsiveImage";
 

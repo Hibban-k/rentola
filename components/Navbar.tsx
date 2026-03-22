@@ -86,6 +86,14 @@ export default function Navbar() {
                     >
                         How it Works
                     </Link>
+                    {isLoggedIn && session?.user?.role === "user" && (
+                        <Link
+                            href="/user/rentals"
+                            className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
+                        >
+                            My Rentals
+                        </Link>
+                    )}
                 </div>
 
                 {/* Auth Section - Desktop */}
@@ -110,14 +118,25 @@ export default function Navbar() {
                                         <p className="text-xs text-muted-foreground">Signed in as</p>
                                         <p className="text-sm font-medium capitalize">{session.user.role}</p>
                                     </div>
-                                    <Link
-                                        href={getDashboardLink()}
-                                        onClick={() => setIsDropdownOpen(false)}
-                                        className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-muted transition-colors"
-                                    >
-                                        <LayoutDashboard className="w-4 h-4" />
-                                        Dashboard
-                                    </Link>
+                                    {session.user.role === "user" ? (
+                                        <Link
+                                            href="/profile"
+                                            onClick={() => setIsDropdownOpen(false)}
+                                            className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-muted transition-colors"
+                                        >
+                                            <User className="w-4 h-4" />
+                                            Profile
+                                        </Link>
+                                    ) : (
+                                        <Link
+                                            href={getDashboardLink()}
+                                            onClick={() => setIsDropdownOpen(false)}
+                                            className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-muted transition-colors"
+                                        >
+                                            <LayoutDashboard className="w-4 h-4" />
+                                            Dashboard
+                                        </Link>
+                                    )}
                                     <button
                                         onClick={handleLogout}
                                         className="w-full flex items-center gap-2 px-3 py-2 text-sm text-destructive hover:bg-destructive/10 transition-colors"
@@ -167,19 +186,40 @@ export default function Navbar() {
                         <Car className="w-5 h-5 text-muted-foreground" />
                         <span className="font-medium">Browse Vehicles</span>
                     </Link>
+                    {isLoggedIn && session?.user?.role === "user" && (
+                        <Link
+                            href="/user/rentals"
+                            className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors"
+                            onClick={() => setIsMobileMenuOpen(false)}
+                        >
+                            <Car className="w-5 h-5 text-muted-foreground" />
+                            <span className="font-medium">My Rentals</span>
+                        </Link>
+                    )}
                     <div className="h-px bg-border my-1" />
 
                     {isLoggedIn ? (
                         /* Mobile - Logged In */
                         <>
-                            <Link
-                                href={getDashboardLink()}
-                                className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors"
-                                onClick={() => setIsMobileMenuOpen(false)}
-                            >
-                                <LayoutDashboard className="w-5 h-5 text-muted-foreground" />
-                                <span className="font-medium">Dashboard</span>
-                            </Link>
+                            {session.user.role === "user" ? (
+                                <Link
+                                    href="/profile"
+                                    className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors"
+                                    onClick={() => setIsMobileMenuOpen(false)}
+                                >
+                                    <User className="w-5 h-5 text-muted-foreground" />
+                                    <span className="font-medium">Profile</span>
+                                </Link>
+                            ) : (
+                                <Link
+                                    href={getDashboardLink()}
+                                    className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors"
+                                    onClick={() => setIsMobileMenuOpen(false)}
+                                >
+                                    <LayoutDashboard className="w-5 h-5 text-muted-foreground" />
+                                    <span className="font-medium">Dashboard</span>
+                                </Link>
+                            )}
                             <button
                                 onClick={() => {
                                     handleLogout();

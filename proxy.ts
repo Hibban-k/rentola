@@ -70,8 +70,11 @@ export async function proxy(request: NextRequest) {
 
         // Must be a provider with approved status
         if (role !== "provider" || providerStatus !== "approved") {
-            // If pending, redirect to pending page
-            if (role === "provider" && providerStatus === "pending") {
+            // If pending or rejected, redirect to pending page
+            if (role === "provider" && (providerStatus === "pending" || providerStatus === "rejected")) {
+                if (pathname === "/provider/pending") {
+                    return NextResponse.next(); // Already on the correct page
+                }
                 return NextResponse.redirect(
                     new URL("/provider/pending", request.url)
                 );

@@ -6,12 +6,14 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { Car, Calendar, MapPin, User, ArrowLeft, Phone } from "lucide-react";
-import DashboardLayout from "@/components/DashboardLayout";
+import Navbar from "@/components/Navbar";
+import Footer from "@/components/Footer";
 import PageHeader from "@/components/ui/PageHeader";
 import LoadingSkeleton from "@/components/ui/LoadingSkeleton";
 import ErrorState from "@/components/ui/ErrorState";
 import StatusBadge, { StatusType } from "@/components/ui/StatusBadge";
-import { rentalsApi, Rental } from "@/lib/apiClient";
+import { getUserRentalsAction } from "@/lib/actions/query.actions";
+import { Rental } from "@/types";
 
 function formatDate(dateStr: string): string {
     return new Date(dateStr).toLocaleDateString("en-IN", {
@@ -50,13 +52,13 @@ export default function UserRentalDetailPage({
         setError(null);
         try {
             // Since we don't have a get(id) method, fetch all and find
-            const { data, error: apiError } = await rentalsApi.list();
+            const { data, error: apiError } = await getUserRentalsAction();
 
             if (apiError) {
                 throw new Error(apiError);
             }
 
-            const foundRental = data?.rentals?.find((r) => r._id === id);
+            const foundRental = (data?.rentals as Rental[] || [])?.find((r: Rental) => r._id === id);
 
             if (!foundRental) {
                 setError("Rental not found");
@@ -74,7 +76,9 @@ export default function UserRentalDetailPage({
     const vehicle = rental?.vehicleId;
 
     return (
-        <DashboardLayout role="user">
+        <div className="min-h-screen bg-background flex flex-col">
+            <Navbar />
+            <main className="flex-1 container mx-auto px-4 pt-32 pb-16 max-w-5xl">
             <PageHeader
                 title="Rental Details"
                 subtitle="View your booking information"
@@ -188,6 +192,8 @@ export default function UserRentalDetailPage({
                     </div>
                 </div>
             ) : null}
-        </DashboardLayout>
+            </main>
+            <Footer />
+        </div>
     );
 }

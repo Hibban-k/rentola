@@ -6,13 +6,13 @@ import { Car, Bike } from "lucide-react";
 import { vehicleService } from "@/lib/services/vehicle.service";
 import VehicleFilterSidebar from "./VehicleFilterSidebar";
 import LoadMore from "./LoadMore";
-import { Vehicle } from "@/lib/apiClient";
+import { Vehicle } from "@/types";
 import ResponsiveImage from "@/components/ui/ResponsiveImage";
 
 export default async function VehiclesPage({
     searchParams
 }: {
-    searchParams: Promise<{ type?: string; search?: string; page?: string }>
+    searchParams: Promise<{ type?: string; search?: string; page?: string; startDate?: string; endDate?: string }>
 }) {
     const filters = await searchParams;
     const page = parseInt(filters.page || "1", 10);
@@ -20,7 +20,9 @@ export default async function VehiclesPage({
 
     const rawData = await vehicleService.getAllVehicles({
         type: filters.type as any,
-        search: filters.search
+        search: filters.search,
+        startDate: filters.startDate,
+        endDate: filters.endDate
     });
 
     // In a real paginated app, we'd use skip/limit in service
@@ -40,63 +42,58 @@ export default async function VehiclesPage({
                     <p className="text-muted-foreground max-w-2xl mx-auto mb-8">
                         Explore our curated selection of premium vehicles. Filter by type or search for your perfect ride.
                     </p>
-
-                    <VehicleFilterSidebar
-                        currentType={filters.type || "all"}
-                        currentSearch={filters.search || ""}
-                    />
                 </div>
             </div>
 
-            {/* Main Content */}
-            <div className="flex-1 container mx-auto px-4 py-8">
-                <div className="flex flex-col md:flex-row gap-8">
-                    {/* The sidebar is rendered inside VehicleFilterSidebar for layout reasons */}
-                    <main className="flex-1">
-                        {vehicles.length === 0 ? (
-                            <div className="text-center py-12">
-                                <Car className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
-                                <h3 className="text-xl font-semibold mb-2">No vehicles found</h3>
-                                <p className="text-muted-foreground">Try adjusting your filters or search query.</p>
+            <VehicleFilterSidebar
+                currentType={filters.type || "all"}
+                currentSearch={filters.search || ""}
+            >
+                {/* Main Content */}
+                <main className="flex-1">
+                    {vehicles.length === 0 ? (
+                        <div className="text-center py-12">
+                            <Car className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
+                            <h3 className="text-xl font-semibold mb-2">No vehicles found</h3>
+                            <p className="text-muted-foreground">Try adjusting your filters or search query.</p>
+                        </div>
+                    ) : (
+                        <>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                                {vehicles.map((vehicle) => (
+                                    <Link
+                                        key={vehicle._id}
+                                        href={`/vehicles/${vehicle._id}`}
+                                        className="group bg-card border border-border rounded-2xl overflow-hidden hover:shadow-xl hover:border-primary/30 transition-all"
+                                    >
+                                        {/* Image */}
+                                        <ResponsiveImage
+                                            src={vehicle.vehicleImageUrl?.[0]?.url || ""}
+                                            alt={vehicle.name}
+                                            fallbackType={vehicle.type === "car" ? "car" : "bike"}
+                                            aspectRatio="video"
+                                            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                                        />
+
+                                        {/* Content */}
+                                        <div className="p-4">
+                                            <h3 className="font-semibold text-lg mb-1 group-hover:text-primary transition-colors">
+                                                {vehicle.name}
+                                            </h3>
+                                            <p className="text-primary font-bold">
+                                                ₹{vehicle.pricePerDay.toLocaleString()}
+                                                <span className="text-muted-foreground font-normal text-sm"> /day</span>
+                                            </p>
+                                        </div>
+                                    </Link>
+                                ))}
                             </div>
-                        ) : (
-                            <>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                                    {vehicles.map((vehicle) => (
-                                        <Link
-                                            key={vehicle._id}
-                                            href={`/vehicles/${vehicle._id}`}
-                                            className="group bg-card border border-border rounded-2xl overflow-hidden hover:shadow-xl hover:border-primary/30 transition-all"
-                                        >
-                                            {/* Image */}
-                                            <ResponsiveImage
-                                                src={vehicle.vehicleImageUrl?.[0]?.url || ""}
-                                                alt={vehicle.name}
-                                                fallbackType={vehicle.type === "car" ? "car" : "bike"}
-                                                aspectRatio="video"
-                                                sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                                            />
 
-                                            {/* Content */}
-                                            <div className="p-4">
-                                                <h3 className="font-semibold text-lg mb-1 group-hover:text-primary transition-colors">
-                                                    {vehicle.name}
-                                                </h3>
-                                                <p className="text-primary font-bold">
-                                                    ₹{vehicle.pricePerDay.toLocaleString()}
-                                                    <span className="text-muted-foreground font-normal text-sm"> /day</span>
-                                                </p>
-                                            </div>
-                                        </Link>
-                                    ))}
-                                </div>
-
-                                <LoadMore hasMore={hasMore} currentPage={page} />
-                            </>
-                        )}
-                    </main>
-                </div>
-            </div>
+                            <LoadMore hasMore={hasMore} currentPage={page} />
+                        </>
+                    )}
+                </main>
+            </VehicleFilterSidebar>
 
             <Footer />
         </div>

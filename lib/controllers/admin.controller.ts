@@ -4,12 +4,12 @@ import { getAdminSession } from "@/lib/auth";
 
 export class AdminController {
     /**
-     * Handle POST /api/admin/providers
+     * Handle Patch /api/admin/providers
      */
-    async handleProviderStatus(request: NextRequest) {
+    async handleProviderStatus(request: NextRequest, userId: string) {
         try {
             await getAdminSession();
-            const { userId, status } = await request.json();
+            const { status } = await request.json();
 
             if (status === "approved") {
                 await adminService.approveProvider(userId);
@@ -51,6 +51,21 @@ export class AdminController {
             return NextResponse.json(providers);
         } catch (error: any) {
             console.error("[AdminController.getProviders]", error);
+            return NextResponse.json(
+                { error: error.message || "Unauthorized" },
+                { status: error.status || 401 }
+            );
+        }
+
+    }
+
+    async getProviderById(request: NextRequest, userId: string) {
+        try {
+            await getAdminSession();
+            const provider = await adminService.getProviderById(userId);
+            return NextResponse.json(provider);
+        } catch (error: any) {
+            console.error("[AdminController.getProviderById]", error);
             return NextResponse.json(
                 { error: error.message || "Unauthorized" },
                 { status: error.status || 401 }

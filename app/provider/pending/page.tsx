@@ -6,10 +6,11 @@ import Link from "next/link";
 import { useSession, signOut } from "next-auth/react";
 import { Clock, Mail, LogOut, CheckCircle2, XCircle } from "lucide-react";
 import Navbar from "@/components/Navbar";
+import { checkMyProviderStatusAction } from "@/lib/actions/query.actions";
 
 export default function ProviderPendingPage() {
     const router = useRouter();
-    const { data: session, status } = useSession();
+    const { data: session, status, update } = useSession();
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
@@ -36,6 +37,24 @@ export default function ProviderPendingPage() {
             setIsLoading(false);
         }
     }, [status, session, router]);
+
+    useEffect(() => {
+        if (status !== "authenticated" || session?.user?.providerStatus !== "pending") return;
+
+        const interval = setInterval(async () => {
+            try {
+                const latestStatus = await checkMyProviderStatusAction();
+                if (latestStatus && latestStatus !== session.user.providerStatus) {
+                    // Update the local session JWT cookie automatically
+                    await update({ providerStatus: latestStatus });
+                }
+            } catch (error) {
+                console.error("Failed to poll provider status:", error);
+            }
+        }, 5000); // Poll every 5 seconds
+
+        return () => clearInterval(interval);
+    }, [status, session, update]);
 
     const handleLogout = () => {
         signOut({ callbackUrl: "/" });

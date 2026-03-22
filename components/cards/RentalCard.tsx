@@ -5,7 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Car, Calendar, MapPin, XCircle, CheckCircle, Trash2 } from "lucide-react";
 import StatusBadge, { StatusType } from "@/components/ui/StatusBadge";
-import { Rental } from "@/lib/apiClient";
+import { Rental } from "@/types";
 import { acceptRentalAction, rejectRentalAction, cancelRentalAction } from "@/lib/actions/rental.actions";
 import ResponsiveImage from "@/components/ui/ResponsiveImage";
 
