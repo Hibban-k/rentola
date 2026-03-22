@@ -15,7 +15,7 @@ export const metadata = {
 };
 
 export default async function ProviderVehiclesPage() {
-    const session = await getProviderSession().catch(() => null);
+    const session = await getProviderSession();
 
     if (!session) {
         redirect("/auth");

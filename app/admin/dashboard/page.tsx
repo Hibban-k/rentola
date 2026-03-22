@@ -6,8 +6,7 @@ import PageHeader from "@/components/ui/PageHeader";
 import EmptyState from "@/components/ui/EmptyState";
 import ProviderCard from "@/components/cards/ProviderCard";
 import { adminService } from "@/lib/services/admin.service";
-import { rentalService } from "@/lib/services/rental.service";
-import { getAdminSession, getAuthSession } from "@/lib/auth";
+import { getAdminSession } from "@/lib/auth";
 import AdminTabs from "./AdminTabs";
 import Rental from "@/models/Rental";
 import { connectToDatabase } from "@/lib/db";
@@ -17,22 +16,22 @@ export default async function AdminDashboardPage({
 }: {
     searchParams: Promise<{ status?: string }>
 }) {
-    const session = await getAuthSession();
+    const session = await getAdminSession();
 
-    if (!session || session.role !== "admin") {
+    if (!session) {
         redirect("/auth");
     }
 
     const { status: activeStatus } = await searchParams;
     const activeTab = activeStatus || "pending";
 
-    await connectToDatabase();
-    const rawProviders = await adminService.getAllProviders();
+    const [rawProviders, rentals] = await Promise.all([
+        adminService.getAllProviders(),
+        Rental.find({
+            status: { $in: ["active", "completed"] }
+        }).lean()
+    ]);
     const providers = JSON.parse(JSON.stringify(rawProviders));
-
-    const rentals = await Rental.find({
-        status: { $in: ["active", "completed"] }
-    }).lean();
 
     const totalRevenue = rentals.length * 18;
 

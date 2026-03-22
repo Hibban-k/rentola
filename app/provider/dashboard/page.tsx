@@ -6,14 +6,13 @@ import PageHeader from "@/components/ui/PageHeader";
 import EmptyState from "@/components/ui/EmptyState";
 import VehicleCard from "@/components/cards/VehicleCard";
 import { vehicleService } from "@/lib/services/vehicle.service";
-import { rentalService } from "@/lib/services/rental.service";
 import { getProviderSession } from "@/lib/auth";
-import { Vehicle, Rental } from "@/types";
+import { Vehicle } from "@/types";
 import { connectToDatabase } from "@/lib/db";
 import RentalModel from "@/models/Rental";
 
 export default async function ProviderDashboardPage() {
-    const session = await getProviderSession().catch(() => null);
+    const session = await getProviderSession();
 
     if (!session) {
         redirect("/auth");
