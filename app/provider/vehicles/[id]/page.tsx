@@ -8,7 +8,9 @@ import Image from "next/image";
 import DashboardLayout from "@/components/DashboardLayout";
 import ImageUpload from "@/components/ImageUpload";
 import { ArrowLeft, Car, Bike, AlertCircle, Trash2, Loader2, X } from "lucide-react";
-import { providerApi, Vehicle, VehicleImage } from "@/lib/apiClient";
+import { getProviderVehicleAction } from "@/lib/actions/query.actions";
+import { updateVehicleAction, deleteVehicleAction } from "@/lib/actions/vehicle.actions";
+import { VehicleImage } from "@/types";
 
 export default function EditVehiclePage() {
     const router = useRouter();
@@ -46,7 +48,7 @@ export default function EditVehiclePage() {
             }
 
             try {
-                const { data, error: apiError } = await providerApi.getVehicle(vehicleId);
+                const { data, error: apiError } = await getProviderVehicleAction(vehicleId);
 
                 if (apiError) {
                     throw new Error(apiError);
@@ -83,15 +85,18 @@ export default function EditVehiclePage() {
         setIsSaving(true);
 
         try {
-            const { error: apiError } = await providerApi.updateVehicle(vehicleId, {
-                name: formData.name,
-                pricePerDay: Number(formData.pricePerDay),
-                isAvailable: formData.isAvailable,
-                pickupStation: formData.pickupStation,
+            const response = await updateVehicleAction(null, {
+                id: vehicleId,
+                data: {
+                    name: formData.name,
+                    pricePerDay: Number(formData.pricePerDay),
+                    isAvailable: formData.isAvailable,
+                    pickupStation: formData.pickupStation,
+                }
             });
 
-            if (apiError) {
-                throw new Error(apiError);
+            if (!response.success) {
+                throw new Error(response.error);
             }
 
             router.push("/provider/dashboard");
@@ -106,10 +111,10 @@ export default function EditVehiclePage() {
         setIsDeleting(true);
 
         try {
-            const { error: apiError } = await providerApi.deleteVehicle(vehicleId);
+            const response = await deleteVehicleAction(null, vehicleId);
 
-            if (apiError) {
-                throw new Error("Failed to delete vehicle");
+            if (!response.success) {
+                throw new Error(response.error || "Failed to delete vehicle");
             }
 
             router.push("/provider/dashboard");
@@ -269,10 +274,11 @@ export default function EditVehiclePage() {
                                                 onClick={async () => {
                                                     setIsUpdatingImages(true);
                                                     const newImages = imageUrls.filter((_, i) => i !== index);
-                                                    const { error: apiError } = await providerApi.updateVehicle(vehicleId, {
-                                                        vehicleImageUrl: newImages,
+                                                    const response = await updateVehicleAction(null, {
+                                                        id: vehicleId,
+                                                        data: { vehicleImageUrl: newImages }
                                                     });
-                                                    if (!apiError) {
+                                                    if (response.success) {
                                                         setImageUrls(newImages);
                                                     } else {
                                                         setError("Failed to remove image");
@@ -296,10 +302,11 @@ export default function EditVehiclePage() {
                                     onUploadSuccess={async (file) => {
                                         setIsUpdatingImages(true);
                                         const newImages = [...imageUrls, { type: "image", url: file.url }];
-                                        const { error: apiError } = await providerApi.updateVehicle(vehicleId, {
-                                            vehicleImageUrl: newImages,
+                                        const response = await updateVehicleAction(null, {
+                                            id: vehicleId,
+                                            data: { vehicleImageUrl: newImages }
                                         });
-                                        if (!apiError) {
+                                        if (response.success) {
                                             setImageUrls(newImages);
                                         } else {
                                             setError("Failed to add image");

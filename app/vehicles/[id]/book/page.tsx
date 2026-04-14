@@ -5,7 +5,7 @@ import Footer from "@/components/Footer";
 import { ArrowLeft, AlertCircle } from "lucide-react";
 import { vehicleService } from "@/lib/services/vehicle.service";
 import BookingForm from "./BookingForm";
-import { Vehicle } from "@/lib/apiClient";
+import { Vehicle } from "@/types";
 
 export default async function BookVehiclePage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = await params;

@@ -4,7 +4,7 @@ import { useState, FormEvent, useRef, ChangeEvent, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
 import { Mail, Lock, User, Shield, AlertCircle, Loader2, Upload, FileText, X, Eye, EyeOff } from "lucide-react";
-import { authApi } from "@/lib/apiClient";
+import { signupAction } from "@/lib/actions/auth.actions";
 
 type AuthMode = "signin" | "signup";
 type UserRole = "user" | "provider";
@@ -169,6 +169,7 @@ export function AuthContent() {
         }
 
         setIsLoading(true);
+        setMode("signin");
 
         try {
             if (mode === "signin") {
@@ -203,7 +204,7 @@ export function AuthContent() {
                     }))
                 );
 
-                const { data, error: apiError } = await authApi.signup({
+                const resultAction = await signupAction({
                     name: formData.name,
                     email: formData.email,
                     password: formData.password,
@@ -212,11 +213,11 @@ export function AuthContent() {
                     licenseImageUrl: licensePhoto ? await fileToBase64(licensePhoto.file) : undefined,
                 });
 
-                if (apiError) {
-                    throw new Error(apiError);
+                if (!resultAction.success) {
+                    throw new Error(resultAction.error);
                 }
 
-                if (data?.token) {
+                if (resultAction.data) {
                     // After signup, sign in with NextAuth
                     const result = await signIn("credentials", {
                         email: formData.email,
@@ -228,7 +229,7 @@ export function AuthContent() {
                         if (role === "provider") {
                             router.push("/provider/pending");
                         } else {
-                            router.push("/user/dashboard");
+                            router.push("/vehicles");
                         }
                     }
                 }

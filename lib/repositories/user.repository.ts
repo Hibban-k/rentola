@@ -24,6 +24,9 @@ export class UserRepository {
     async update(id: string, updateData: Partial<IUser>): Promise<IUser | null> {
         return User.findByIdAndUpdate(id, updateData, { new: true });
     }
+    async updateProviderStatus(id: string, status: string): Promise<IUser | null> {
+        return User.findByIdAndUpdate(id, { providerStatus: status }, { new: true });
+    }
 }
 
 export const userRepository = new UserRepository();

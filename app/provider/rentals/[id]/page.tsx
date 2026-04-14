@@ -17,6 +17,11 @@ function formatDate(dateStr: string): string {
     });
 }
 
+export const metadata = {
+    title: "Rental Details",
+    description: "View and manage this booking",
+};
+
 export default async function ProviderRentalDetailPage({
     params
 }: {

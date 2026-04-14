@@ -9,7 +9,8 @@ import LoadingSkeleton from "@/components/ui/LoadingSkeleton";
 import EmptyState from "@/components/ui/EmptyState";
 import ErrorState from "@/components/ui/ErrorState";
 import RentalCard from "@/components/cards/RentalCard";
-import { adminApi, Rental } from "@/lib/apiClient";
+import { getAllRentalsAction } from "@/lib/actions/query.actions";
+import { Rental } from "@/types";
 import { Calendar, Clock, CheckCircle2, XCircle, Loader2 } from "lucide-react";
 
 type TabFilter = "all" | "pending" | "active" | "completed" | "cancelled";
@@ -43,7 +44,7 @@ export default function AdminRentalsPage() {
         setIsLoading(true);
         setError(null);
         try {
-            const { data, error: apiError } = await adminApi.getAllRentals();
+            const { data, error: apiError } = await getAllRentalsAction();
 
             if (apiError) {
                 throw new Error(apiError);

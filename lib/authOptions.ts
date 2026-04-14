@@ -42,11 +42,15 @@ export const authOptions: AuthOptions = {
         }),
     ],
     callbacks: {
-        async jwt({ token, user }) {
+        async jwt({ token, user, trigger, session }) {
             if (user) {
                 token.id = user.id;
                 token.role = user.role;
                 token.providerStatus = user.providerStatus;
+            }
+            // Allow client-side updates
+            if (trigger === "update" && session?.providerStatus) {
+                token.providerStatus = session.providerStatus;
             }
             return token;
         },

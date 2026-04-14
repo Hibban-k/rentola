@@ -60,6 +60,29 @@ export async function updateVehicleAvailabilityAction(
 }
 
 /**
+ * Server Action to fully update a vehicle.
+ */
+export async function updateVehicleAction(
+    prevState: any,
+    payload: { id: string; data: any }
+): Promise<ActionResponse> {
+    try {
+        const user = await getProviderSession();
+
+        await vehicleService.updateVehicle(payload.id, user.id!, payload.data);
+
+        revalidatePath("/provider/dashboard");
+        revalidatePath("/vehicles");
+        revalidatePath(`/vehicles/${payload.id}`);
+        revalidatePath(`/provider/vehicles/${payload.id}`);
+
+        return { success: true };
+    } catch (error: any) {
+        return { success: false, error: error.message || "Failed to update vehicle" };
+    }
+}
+
+/**
  * Server Action to delete a vehicle.
  */
 export async function deleteVehicleAction(

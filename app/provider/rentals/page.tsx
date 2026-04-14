@@ -7,6 +7,10 @@ import { rentalService } from "@/lib/services/rental.service";
 import { getAuthSession } from "@/lib/auth";
 import { Calendar } from "lucide-react";
 import RentalTabs from "../../user/rentals/RentalTabs";
+export const metadata = {
+    title: "Bookings",
+    description: "Manage your vehicle bookings",
+};
 
 export default async function ProviderBookingsPage({
     searchParams

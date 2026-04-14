@@ -10,7 +10,9 @@ import PageHeader from "@/components/ui/PageHeader";
 import LoadingSkeleton from "@/components/ui/LoadingSkeleton";
 import ErrorState from "@/components/ui/ErrorState";
 import StatusBadge, { StatusType } from "@/components/ui/StatusBadge";
-import { adminApi, providerApi, Provider } from "@/lib/apiClient";
+import { getProviderByIdAction } from "@/lib/actions/query.actions";
+import { approveProviderAction, rejectProviderAction } from "@/lib/actions/admin.actions";
+import { Provider } from "@/types";
 
 export default function AdminProviderDetailPage({
     params
@@ -46,7 +48,7 @@ export default function AdminProviderDetailPage({
         setIsLoading(true);
         setError(null);
         try {
-            const { data, error: apiError } = await adminApi.getProvider(id);
+            const { data, error: apiError } = await getProviderByIdAction(id);
 
             if (apiError) {
                 throw new Error(apiError);
@@ -63,10 +65,15 @@ export default function AdminProviderDetailPage({
     const handleStatusUpdate = async (newStatus: "approved" | "rejected") => {
         setIsActionLoading(true);
         try {
-            const { error: apiError } = await adminApi.updateProviderStatus(id, newStatus);
+            let response;
+            if (newStatus === "approved") {
+                response = await approveProviderAction(null, id);
+            } else {
+                response = await rejectProviderAction(null, id);
+            }
 
-            if (apiError) {
-                throw new Error(apiError);
+            if (!response.success) {
+                throw new Error(response.error);
             }
 
             await fetchProvider();

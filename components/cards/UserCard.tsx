@@ -1,7 +1,7 @@
 "use client";
 
 import { User, Shield, Car } from "lucide-react";
-import { UserInfo } from "@/lib/apiClient";
+import { UserInfo } from "@/types";
 import React from "react";
 
 interface UserCardProps {

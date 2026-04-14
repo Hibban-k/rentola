@@ -19,6 +19,20 @@ export class VehicleService {
             ];
         }
 
+        if (filters.startDate && filters.endDate) {
+            const start = new Date(filters.startDate);
+            const end = new Date(filters.endDate);
+            // Ignore past queries or invalid dates gracefully
+            if (!isNaN(start.getTime()) && !isNaN(end.getTime())) {
+                const { rentalRepository } = require("@/lib/repositories/rental.repository");
+                const bookedVehicleIds = await rentalRepository.findOverlappingVehicleIds(start, end);
+                
+                if (bookedVehicleIds.length > 0) {
+                    query._id = { $nin: bookedVehicleIds };
+                }
+            }
+        }
+
         return Vehicle.find(query).sort({ createdAt: -1 });
     }
 

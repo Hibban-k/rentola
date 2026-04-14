@@ -1,7 +1,7 @@
 "use server"
 
 import { revalidatePath } from "next/cache";
-import { getAuthSession } from "@/lib/auth";
+import { getAdminSession } from "@/lib/auth";
 import { adminService } from "@/lib/services/admin.service";
 import { ActionResponse } from "@/types";
 
@@ -13,7 +13,7 @@ export async function approveProviderAction(
     providerId: string
 ): Promise<ActionResponse> {
     try {
-        const user = await getAuthSession();
+        const user = await getAdminSession();
         if (!user || user.role !== "admin") {
             return { success: false, error: "Unauthorized: Admin access required" };
         }
@@ -37,10 +37,8 @@ export async function rejectProviderAction(
     providerId: string
 ): Promise<ActionResponse> {
     try {
-        const user = await getAuthSession();
-        if (!user || user.role !== "admin") {
-            return { success: false, error: "Unauthorized: Admin access required" };
-        }
+        const user = await getAdminSession();
+       
 
         await adminService.rejectProvider(providerId);
 

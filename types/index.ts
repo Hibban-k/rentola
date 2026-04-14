@@ -33,6 +33,8 @@ export interface VehicleFilters {
     maxPrice?: number;
     page?: number;
     limit?: number;
+    startDate?: string;
+    endDate?: string;
 }
 
 export interface CreateVehiclePayload {

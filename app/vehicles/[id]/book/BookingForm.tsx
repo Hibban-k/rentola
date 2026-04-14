@@ -12,7 +12,7 @@ import {
     AlertCircle,
     CheckCircle2
 } from "lucide-react";
-import { Vehicle } from "@/lib/apiClient";
+import { Vehicle } from "@/types";
 import { createRentalAction } from "@/lib/actions/rental.actions";
 import CalendarPicker from "@/components/ui/CalendarPicker";
 import PlatformChargeInfo from "@/components/ui/PlatformChargeInfo";
@@ -39,7 +39,7 @@ export default function BookingForm({ vehicle, id }: BookingFormProps) {
     useEffect(() => {
         if (state?.success) {
             setTimeout(() => {
-                router.push("/user/dashboard");
+                router.push("/user/rentals");
             }, 2000);
         }
     }, [state, router]);
@@ -107,7 +107,7 @@ export default function BookingForm({ vehicle, id }: BookingFormProps) {
                     <CheckCircle2 className="w-8 h-8 text-emerald-500" />
                     <div>
                         <p className="font-semibold text-emerald-700 dark:text-emerald-400">Booking Confirmed!</p>
-                        <p className="text-sm text-muted-foreground">Redirecting to your dashboard...</p>
+                        <p className="text-sm text-muted-foreground">Redirecting to your bookings...</p>
                     </div>
                 </div>
             )}

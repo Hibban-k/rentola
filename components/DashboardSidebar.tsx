@@ -37,7 +37,6 @@ const providerNavItems: NavItem[] = [
 ];
 
 const userNavItems: NavItem[] = [
-    { label: "Dashboard", href: "/user/dashboard", icon: LayoutDashboard },
     { label: "My Rentals", href: "/user/rentals", icon: Calendar },
     { label: "Browse Vehicles", href: "/vehicles", icon: Car },
 ];
