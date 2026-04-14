@@ -3,16 +3,12 @@ import { getToken } from "next-auth/jwt";
 import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
 
-// Optional Rate Limiting initialization
-let ratelimit: Ratelimit | null = null;
-
-if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) {
-    ratelimit = new Ratelimit({
-        redis: Redis.fromEnv(),
-        limiter: Ratelimit.slidingWindow(10, "10 s"),
-        analytics: true,
-    });
-}
+// Create a new ratelimiter, that allows 10 requests per 10 seconds
+const ratelimit = new Ratelimit({
+  redis: Redis.fromEnv(),
+  limiter: Ratelimit.slidingWindow(10, "10 s"),
+  analytics: true,
+});
 
 // Public routes that don't require authentication
 const publicRoutes = [
@@ -36,21 +32,16 @@ function isPublicRoute(pathname: string): boolean {
 export async function proxy(request: NextRequest) {
     const { pathname } = request.nextUrl;
 
-    // Apply Rate Limiting to API Routes if configured
-    if (pathname.startsWith("/api/") && ratelimit) {
-        try {
-            const ip = request.headers.get("x-forwarded-for") ?? "127.0.0.1";
-            const { success } = await ratelimit.limit(ip);
-            
-            if (!success) {
-                return NextResponse.json(
-                    { error: "Too many requests. Please try again later." },
-                    { status: 429 }
-                );
-            }
-        } catch (error) {
-            console.error("Rate limiting error:", error);
-            // Fail open if rate limiter goes down
+    // Apply Rate Limiting to API Routes
+    if (pathname.startsWith("/api/")) {
+        const ip = request.headers.get("x-forwarded-for") ?? "127.0.0.1";
+        const { success } = await ratelimit.limit(ip);
+        
+        if (!success) {
+            return NextResponse.json(
+                { error: "Too many requests. Please try again later." },
+                { status: 429 }
+            );
         }
     }
 

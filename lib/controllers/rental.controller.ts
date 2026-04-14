@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthSession, getProviderSession, getAdminSession } from "@/lib/auth";
 import { rentalService } from "../services/rental.service";
+import { paymentService } from "../services/payment.service";
 import { rentalCreateSchema } from "@/lib/validations/rental.schema";
-import { razorpay } from "@/lib/razorpay";
+import { getRazorpay } from "@/lib/razorpay";
 
 export class RentalController {
     /**
@@ -85,7 +86,17 @@ export class RentalController {
                 currency: "INR",
                 receipt: rental._id.toString()
             };
-            const order = await razorpay.orders.create(razorpayOptions);
+            
+            const rzp = getRazorpay();
+            const order = await rzp.orders.create(razorpayOptions);
+
+            // Initialize Payment record in our database
+            await paymentService.initializePayment({
+                rentalId: rental._id.toString(),
+                renterId: user.id!,
+                amount: rental.totalCost,
+                razorpayOrderId: order.id
+            });
 
             return NextResponse.json(
                 { 

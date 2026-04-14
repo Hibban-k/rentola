@@ -1,10 +1,23 @@
 import Razorpay from "razorpay";
 
-if (!process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
-    console.error("NEXT_PUBLIC_RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET must be defined in the environment");
-}
+let razorpayInstance: Razorpay | null = null;
 
-export const razorpay = new Razorpay({
-    key_id: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || "dummy_key_for_build",
-    key_secret: process.env.RAZORPAY_KEY_SECRET || "dummy_secret_for_build",
-});
+export const getRazorpay = () => {
+    if (razorpayInstance) return razorpayInstance;
+
+    const key_id = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID;
+    const key_secret = process.env.RAZORPAY_KEY_SECRET;
+
+    if (!key_id || !key_secret) {
+        // We throw a clear error here ONLY when someone actually tries to use Razorpay
+        // This prevents the build process from crashing if keys are missing.
+        throw new Error("Razorpay API keys are missing in environment variables.");
+    }
+
+    razorpayInstance = new Razorpay({
+        key_id,
+        key_secret,
+    });
+
+    return razorpayInstance;
+};

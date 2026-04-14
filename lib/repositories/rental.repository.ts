@@ -57,12 +57,12 @@ export class RentalRepository {
     async findActiveExpired(now: Date): Promise<IRental[]> {
         return Rental.find({
             status: "active",
-            endDate: { $lt: now }
+            "rentalPeriod.endDate": { $lt: now }
         });
     }
 
-    async updateStatus(id: string, status: string): Promise<IRental | null> {
-        return Rental.findByIdAndUpdate(id, { status }, { new: true });
+    async updateStatus(id: string, status: string, session?: any): Promise<IRental | null> {
+        return Rental.findByIdAndUpdate(id, { status }, { new: true, session });
     }
 }
 
