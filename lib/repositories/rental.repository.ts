@@ -39,8 +39,9 @@ export class RentalRepository {
         return rentals.map(r => r.vehicleId.toString());
     }
 
-    async create(data: Partial<IRental>): Promise<IRental> {
-        return Rental.create(data);
+    async create(data: Partial<IRental>, session?: any): Promise<IRental> {
+        const rental = new Rental(data);
+        return rental.save({ session });
     }
 
     async findByVehicleIds(vehicleIds: string[]): Promise<IRental[]> {

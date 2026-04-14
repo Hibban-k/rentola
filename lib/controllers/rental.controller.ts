@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthSession, getProviderSession, getAdminSession } from "@/lib/auth";
 import { rentalService } from "../services/rental.service";
+import { rentalCreateSchema } from "@/lib/validations/rental.schema";
+import { razorpay } from "@/lib/razorpay";
 
 export class RentalController {
     /**
@@ -55,11 +57,17 @@ export class RentalController {
             }
 
             const body = await request.json();
-            const { vehicleId, startDate, endDate } = body;
-
-            if (!vehicleId || !startDate || !endDate) {
-                return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+            
+            // Zod Validation securely sanitizes the payload
+            const validationResult = rentalCreateSchema.safeParse(body);
+            if (!validationResult.success) {
+                return NextResponse.json({ 
+                    error: "Validation failed", 
+                    details: validationResult.error.format() 
+                }, { status: 400 });
             }
+
+            const { vehicleId, startDate, endDate } = validationResult.data;
 
             const rental = await rentalService.createRental(user.id!, {
                 vehicleId,
@@ -67,8 +75,25 @@ export class RentalController {
                 endDate,
             });
 
+            if (!rental) {
+                return NextResponse.json({ error: "Failed to allocate rental" }, { status: 500 });
+            }
+
+            // Create Razorpay Order asynchronously
+            const razorpayOptions = {
+                amount: Math.round(rental.totalCost * 100), // convert INR to paise
+                currency: "INR",
+                receipt: rental._id.toString()
+            };
+            const order = await razorpay.orders.create(razorpayOptions);
+
             return NextResponse.json(
-                { success: true, message: "Rental created successfully", rental },
+                { 
+                    success: true, 
+                    message: "Rental created successfully", 
+                    rental,
+                    razorpayOrderId: order.id 
+                },
                 { status: 201 }
             );
         } catch (error: any) {

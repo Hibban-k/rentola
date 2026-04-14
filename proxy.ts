@@ -1,5 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getToken } from "next-auth/jwt";
+import { Ratelimit } from "@upstash/ratelimit";
+import { Redis } from "@upstash/redis";
+
+// Create a new ratelimiter, that allows 10 requests per 10 seconds
+const ratelimit = new Ratelimit({
+  redis: Redis.fromEnv(),
+  limiter: Ratelimit.slidingWindow(10, "10 s"),
+  analytics: true,
+});
 
 // Public routes that don't require authentication
 const publicRoutes = [
@@ -22,6 +31,19 @@ function isPublicRoute(pathname: string): boolean {
 
 export async function proxy(request: NextRequest) {
     const { pathname } = request.nextUrl;
+
+    // Apply Rate Limiting to API Routes
+    if (pathname.startsWith("/api/")) {
+        const ip = request.headers.get("x-forwarded-for") ?? "127.0.0.1";
+        const { success } = await ratelimit.limit(ip);
+        
+        if (!success) {
+            return NextResponse.json(
+                { error: "Too many requests. Please try again later." },
+                { status: 429 }
+            );
+        }
+    }
 
     // Allow public routes
     if (isPublicRoute(pathname)) {
