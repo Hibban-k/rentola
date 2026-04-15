@@ -22,6 +22,8 @@ export async function connectToDatabase() {
 
         const opt = {
             dbName: DB_NAME,
+            bufferCommands: false, // Prevent Next.js from hanging for 10s if connection is slow
+            serverSelectionTimeoutMS: 5000, // Faster failure if IP is blocked or Atlas is down
         }
         cached.promise = mongoose
             .connect(MONGODB_URI, opt)
