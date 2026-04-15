@@ -31,6 +31,9 @@ export class RentalService {
 
     async createRental(userId: string, payload: { vehicleId: string; startDate: string; endDate: string }) {
         await connectToDatabase();
+        if (mongoose.connection.readyState !== 1) {
+            throw new Error("Database is not ready for transactions. Please try again in a moment.");
+        }
         const { vehicleId, startDate, endDate } = payload;
         
         const session = await mongoose.startSession();

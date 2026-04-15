@@ -108,9 +108,14 @@ export class RentalController {
                 { status: 201 }
             );
         } catch (error: any) {
-            console.error("[RentalController.createRental]", error);
+            console.error("[RentalController.createRental] Full Error:", error);
             return NextResponse.json(
-                { error: error.message || "Internal Server Error" },
+                { 
+                    error: error.message || "Internal Server Error",
+                    errorType: error.name || "UnknownError",
+                    // We can also add stack trace in dev/preview if needed, 
+                    // but message is usually enough to identify key/missing env issues.
+                },
                 { status: error.status || 500 }
             );
         }

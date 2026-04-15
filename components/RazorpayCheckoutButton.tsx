@@ -26,6 +26,13 @@ export default function RazorpayCheckoutButton({
     const [isLoading, setIsLoading] = useState(false);
 
     const handlePayment = async () => {
+        // Diagnostic check: Ensure public keys are loaded in Vercel environment
+        if (!process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID) {
+            console.error("NEXT_PUBLIC_RAZORPAY_KEY_ID is missing from environment variables.");
+            alert("Payment configuration error: Public Key ID is missing. Please check your Vercel Environment variables.");
+            return;
+        }
+
         setIsLoading(true);
         try {
             // 1. Create intent and lock DB booking via our API route
