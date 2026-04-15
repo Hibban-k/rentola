@@ -69,52 +69,69 @@ export class RentalController {
             }
 
             const { vehicleId, startDate, endDate } = validationResult.data;
+            let createdRentalId: string | null = null;
+            try {
+                const rental = await rentalService.createRental(user.id!, {
+                    vehicleId,
+                    startDate,
+                    endDate,
+                });
 
-            const rental = await rentalService.createRental(user.id!, {
-                vehicleId,
-                startDate,
-                endDate,
-            });
+                if (!rental) {
+                    return NextResponse.json({ error: "Failed to allocate rental" }, { status: 500 });
+                }
 
-            if (!rental) {
-                return NextResponse.json({ error: "Failed to allocate rental" }, { status: 500 });
+                createdRentalId = rental._id.toString();
+
+                // Create Razorpay Order asynchronously
+                const razorpayOptions = {
+                    amount: Math.round(rental.totalCost * 100), // convert INR to paise
+                    currency: "INR",
+                    receipt: rental._id.toString()
+                };
+                
+                const rzp = getRazorpay();
+                const order = await rzp.orders.create(razorpayOptions);
+
+                // Initialize Payment record in our database
+                await paymentService.initializePayment({
+                    rentalId: rental._id.toString(),
+                    renterId: user.id!,
+                    amount: rental.totalCost,
+                    razorpayOrderId: order.id
+                });
+
+                return NextResponse.json(
+                    { 
+                        success: true, 
+                        message: "Rental created successfully", 
+                        rental,
+                        razorpayOrderId: order.id 
+                    },
+                    { status: 201 }
+                );
+
+            } catch (error: any) {
+                // CLEANUP: If we created a rental but something failed after (e.g. Razorpay), delete it.
+                if (createdRentalId) {
+                    console.warn(`[RentalController.createRental] Cleaning up zombie rental ${createdRentalId} after failure.`);
+                    await rentalService.deleteRental(createdRentalId);
+                }
+                throw error; // Let the outer catch handle response logic
             }
 
-            // Create Razorpay Order asynchronously
-            const razorpayOptions = {
-                amount: Math.round(rental.totalCost * 100), // convert INR to paise
-                currency: "INR",
-                receipt: rental._id.toString()
-            };
-            
-            const rzp = getRazorpay();
-            const order = await rzp.orders.create(razorpayOptions);
-
-            // Initialize Payment record in our database
-            await paymentService.initializePayment({
-                rentalId: rental._id.toString(),
-                renterId: user.id!,
-                amount: rental.totalCost,
-                razorpayOrderId: order.id
-            });
-
-            return NextResponse.json(
-                { 
-                    success: true, 
-                    message: "Rental created successfully", 
-                    rental,
-                    razorpayOrderId: order.id 
-                },
-                { status: 201 }
-            );
         } catch (error: any) {
-            console.error("[RentalController.createRental] Full Error:", error);
+            console.error("[RentalController.createRental] Full Error Block:", error);
+            
+            // Extract the most descriptive message possible
+            const displayError = error.description || error.message || "Internal Server Error";
+            const errorType = error.code || error.name || "UnknownError";
+
             return NextResponse.json(
                 { 
-                    error: error.message || "Internal Server Error",
-                    errorType: error.name || "UnknownError",
-                    // We can also add stack trace in dev/preview if needed, 
-                    // but message is usually enough to identify key/missing env issues.
+                    error: displayError,
+                    errorType: errorType,
+                    details: error.details || null
                 },
                 { status: error.status || 500 }
             );

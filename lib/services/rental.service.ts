@@ -109,6 +109,11 @@ export class RentalService {
         return rentalRepository.updateStatus(id, status);
     }
 
+    async deleteRental(id: string) {
+        await connectToDatabase();
+        return rentalRepository.delete(id);
+    }
+
     async completeExpiredRentals() {
         await connectToDatabase();
         const now = new Date();

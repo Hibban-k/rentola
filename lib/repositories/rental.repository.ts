@@ -64,6 +64,10 @@ export class RentalRepository {
     async updateStatus(id: string, status: string, session?: any): Promise<IRental | null> {
         return Rental.findByIdAndUpdate(id, { status }, { new: true, session });
     }
+
+    async delete(id: string, session?: any): Promise<void> {
+        await Rental.findByIdAndDelete(id, { session });
+    }
 }
 
 export const rentalRepository = new RentalRepository();
