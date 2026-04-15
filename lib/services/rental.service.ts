@@ -61,13 +61,17 @@ export class RentalService {
                 const end = new Date(endDate);
 
                 // 3. Double booking check
-                const overlappingRental = await rentalRepository.findOverlappingRental(vehicleId, start, end);
-                if (overlappingRental) {
-                    // IDEMPOTENCY FIX: If the overlapping rental is still PENDING and belongs to the SAME USER,
-                    // we assume they are retrying a failed checkout. We delete the old one and allow a new one.
-                    if (overlappingRental.status === "pending" && overlappingRental.renterId.toString() === userId) {
-                        console.warn(`[RentalService.createRental] User ${userId} is retrying a pending booking. Cleaning up old record ${overlappingRental._id}`);
-                        await rentalRepository.delete(overlappingRental._id.toString(), session);
+                const overlappingRentals = await require("@/models/Rental").default.find({
+                    vehicleId,
+                    status: { $nin: ['cancelled', 'rejected'] },
+                    "rentalPeriod.startDate": { $lt: end },
+                    "rentalPeriod.endDate": { $gt: start }
+                }).session(session);
+
+                for (const overlapping of overlappingRentals) {
+                    if (overlapping.status === "pending" && overlapping.renterId.toString() === userId) {
+                        console.warn(`[RentalService.createRental] User ${userId} is retrying. Cleaning up old pending record ${overlapping._id}`);
+                        await require("@/models/Rental").default.findByIdAndDelete(overlapping._id).session(session);
                     } else {
                         throw { status: 409, message: "Vehicle is already booked for these dates" };
                     }

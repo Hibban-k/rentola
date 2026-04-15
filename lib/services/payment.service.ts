@@ -25,41 +25,58 @@ export class PaymentService {
 
         const payload = JSON.parse(bodyText);
 
-        // 2. We only process 'order.paid' to finalize bookings
+        // 2. We handle 'order.paid' to activate bookings
         if (payload.event === "order.paid") {
             const orderEntity = payload.payload.order.entity;
             const razorpayOrderId = orderEntity.id;
-            const rentalId = orderEntity.receipt; // We store Rental ID in receipt
+            const rentalId = orderEntity.receipt;
+
+            console.log(`[PaymentService] Processing success for Order: ${razorpayOrderId}, Rental: ${rentalId}`);
 
             const session = await mongoose.startSession();
-            
             try {
                 await session.withTransaction(async () => {
-                    // 3. Update Rental status to active
                     const rental = await rentalRepository.findById(rentalId);
                     if (!rental) throw new Error("Rental not found");
 
-                    if (rental.status === "active") return; // Idempotency check
+                    if (rental.status === "active") {
+                        console.log(`[PaymentService] Rental ${rentalId} already active. Skipping.`);
+                        return;
+                    }
 
                     await rentalRepository.updateStatus(rentalId, "active", session);
 
-                    // 4. Record the Payment in our DB
-                    // Note: We'll update the payment record if it exists or create one
                     await paymentRepository.updateStatus(
                         razorpayOrderId,
                         "success",
                         {
                             rentalId: new mongoose.Types.ObjectId(rentalId),
                             renterId: rental.renterId,
-                            amount: orderEntity.amount / 100, // back to INR
+                            amount: Math.round(orderEntity.amount / 100),
                             razorpayPaymentId: payload.payload.payment?.entity?.id
                         },
                         session
                     );
                 });
+                console.log(`[PaymentService] Successfully recorded SUCCESS for Order: ${razorpayOrderId}`);
             } finally {
                 await session.endSession();
             }
+        } 
+        // 3. Handle Payment Failures
+        else if (payload.event === "payment.failed") {
+            const paymentEntity = payload.payload.payment.entity;
+            const razorpayOrderId = paymentEntity.order_id;
+            
+            console.warn(`[PaymentService] Payment FAILED for Order: ${razorpayOrderId}. Reason: ${paymentEntity.error_description}`);
+            
+            await paymentRepository.updateStatus(
+                razorpayOrderId,
+                "failed",
+                {
+                    razorpayPaymentId: paymentEntity.id
+                }
+            );
         }
 
         return { success: true };

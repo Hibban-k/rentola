@@ -25,7 +25,7 @@ const PaymentSchema: Schema<IPayment> = new Schema(
         status: { 
             type: String, 
             enum: ['pending', 'success', 'failed'], 
-            default: 'pending' 
+            default: 'pending'
         },
     },
     { timestamps: true }
