@@ -61,9 +61,16 @@ export class RentalService {
                 const end = new Date(endDate);
 
                 // 3. Double booking check
-                const existingRental = await rentalRepository.findOverlappingRental(vehicleId, start, end);
-                if (existingRental) {
-                    throw { status: 409, message: "Vehicle is already booked for these dates" };
+                const overlappingRental = await rentalRepository.findOverlappingRental(vehicleId, start, end);
+                if (overlappingRental) {
+                    // IDEMPOTENCY FIX: If the overlapping rental is still PENDING and belongs to the SAME USER,
+                    // we assume they are retrying a failed checkout. We delete the old one and allow a new one.
+                    if (overlappingRental.status === "pending" && overlappingRental.renterId.toString() === userId) {
+                        console.warn(`[RentalService.createRental] User ${userId} is retrying a pending booking. Cleaning up old record ${overlappingRental._id}`);
+                        await rentalRepository.delete(overlappingRental._id.toString(), session);
+                    } else {
+                        throw { status: 409, message: "Vehicle is already booked for these dates" };
+                    }
                 }
 
                 // 4. Calculate Total Cost
