@@ -35,6 +35,7 @@ export interface VehicleFilters {
     limit?: number;
     startDate?: string;
     endDate?: string;
+    
 }
 
 export interface CreateVehiclePayload {
