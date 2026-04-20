@@ -62,11 +62,16 @@ export class RentalRepository {
     }
 
     async updateStatus(id: string, status: string, session?: any): Promise<IRental | null> {
-        const update: any = { status };
-        // If moving away from 'hold', remove the TTL expiration
-        if (status !== 'hold') {
+        const update: any = { 
+            $set: { status } 
+        };
+        
+        // Only clear the TTL if the booking is successfully confirmed or active
+        // This ensures abandoned (hold) and unsuccessful (failed) bookings are still cleaned up
+        if (["pending", "active", "completed"].includes(status)) {
             update.$unset = { expiresAt: 1 };
         }
+        
         return Rental.findByIdAndUpdate(id, update, { new: true, session });
     }
 

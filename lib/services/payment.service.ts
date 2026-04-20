@@ -11,19 +11,25 @@ export class PaymentService {
     async handleWebhook(bodyText: string, signature: string) {
         await connectToDatabase();
         
-        const webhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET || "";
+        const webhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET;
+
+        if (!webhookSecret) {
+            console.error("[PaymentService] CRITICAL: RAZORPAY_WEBHOOK_SECRET is missing. Webhook verification will likely fail.");
+        }
         
         // 1. Verify Signature
         const expectedSignature = crypto
-            .createHmac("sha256", webhookSecret)
+            .createHmac("sha256", webhookSecret || "")
             .update(bodyText)
             .digest("hex");
 
         if (expectedSignature !== signature) {
+            console.error(`[PaymentService] Signature verification failed. Expected: ${expectedSignature.substring(0, 8)}..., Received: ${signature.substring(0, 8)}...`);
             throw new Error("Invalid signature");
         }
 
         const payload = JSON.parse(bodyText);
+        console.log(`[PaymentService] Received Webhook Event: ${payload.event}`);
 
         // 2. We handle 'order.paid' to activate bookings
         if (payload.event === "order.paid") {
@@ -31,7 +37,7 @@ export class PaymentService {
             const razorpayOrderId = orderEntity.id;
             const rentalId = orderEntity.receipt;
 
-            console.log(`[PaymentService] Processing success for Order: ${razorpayOrderId}, Rental: ${rentalId}`);
+            console.log(`[PaymentService] Processing success. Event: ${payload.event}, Order: ${razorpayOrderId}, Rental: ${rentalId}`);
 
             const session = await mongoose.startSession();
             try {
