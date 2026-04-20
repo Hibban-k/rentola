@@ -60,7 +60,7 @@ export default function RazorpayCheckoutButton({
                 handler: function (response: any) {
                     // Payment successful locally. The Webhook handles DB confirmation securely
                     alert("Payment successful! Redirecting to reservations...");
-                    window.location.href = `/rentals`; 
+                    window.location.href = `user/rentals`; 
                 },
                 prefill: {
                     name: userName,
