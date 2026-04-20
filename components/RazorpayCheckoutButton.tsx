@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRazorpay } from "react-razorpay";
+import { useRouter } from "next/navigation";
 
 interface RazorpayCheckoutProps {
     vehicleId: string;
@@ -24,6 +25,8 @@ export default function RazorpayCheckoutButton({
 }: RazorpayCheckoutProps) {
     const { Razorpay } = useRazorpay();
     const [isLoading, setIsLoading] = useState(false);
+
+    const router = useRouter();
 
     const handlePayment = async () => {
         // Diagnostic check: Ensure public keys are loaded in Vercel environment
@@ -60,7 +63,7 @@ export default function RazorpayCheckoutButton({
                 handler: function (response: any) {
                     // Payment successful locally. The Webhook handles DB confirmation securely
                     alert("Payment successful! Redirecting to reservations...");
-                    window.location.href = `user/rentals`; 
+                    router.push("/user/rentals");
                 },
                 prefill: {
                     name: userName,
