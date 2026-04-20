@@ -69,7 +69,7 @@ export class RentalService {
                 }).session(session);
 
                 for (const overlapping of overlappingRentals) {
-                    if (overlapping.status === "pending" && overlapping.renterId.toString() === userId) {
+                    if (["hold", "pending", "failed"].includes(overlapping.status) && overlapping.renterId.toString() === userId) {
                         console.warn(`[RentalService.createRental] User ${userId} is retrying. Cleaning up old pending record ${overlapping._id}`);
                         await require("@/models/Rental").default.findByIdAndDelete(overlapping._id).session(session);
                     } else {
@@ -84,6 +84,8 @@ export class RentalService {
                 const totalCost = (days * vehicle.pricePerDay) + platformFee;
 
                 // 5. Create the rental
+                const fiveMinutesFromNow = new Date(Date.now() + 5 * 60 * 1000);
+                
                 createdRental = await rentalRepository.create({
                     vehicleId: vehicleId as any,
                     renterId: userId as any,
@@ -92,6 +94,8 @@ export class RentalService {
                         endDate: end,
                     },
                     totalCost,
+                    status: 'hold',
+                    expiresAt: fiveMinutesFromNow,
                 }, session);
             });
             return createdRental;

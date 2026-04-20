@@ -39,12 +39,13 @@ export class PaymentService {
                     const rental = await rentalRepository.findById(rentalId);
                     if (!rental) throw new Error("Rental not found");
 
-                    if (rental.status === "active") {
-                        console.log(`[PaymentService] Rental ${rentalId} already active. Skipping.`);
+                    // If already processed (not in hold status), skip
+                    if (rental.status !== "hold") {
+                        console.log(`[PaymentService] Rental ${rentalId} status is ${rental.status}. Skipping.`);
                         return;
                     }
 
-                    await rentalRepository.updateStatus(rentalId, "active", session);
+                    await rentalRepository.updateStatus(rentalId, "pending", session);
 
                     await paymentRepository.updateStatus(
                         razorpayOrderId,
@@ -67,9 +68,11 @@ export class PaymentService {
         else if (payload.event === "payment.failed") {
             const paymentEntity = payload.payload.payment.entity;
             const razorpayOrderId = paymentEntity.order_id;
+            const rentalId = payload.payload.order?.entity?.receipt || paymentEntity.notes?.rentalId;
             
             console.warn(`[PaymentService] Payment FAILED for Order: ${razorpayOrderId}. Reason: ${paymentEntity.error_description}`);
             
+            // Update Payment record
             await paymentRepository.updateStatus(
                 razorpayOrderId,
                 "failed",
@@ -77,6 +80,11 @@ export class PaymentService {
                     razorpayPaymentId: paymentEntity.id
                 }
             );
+
+            // Also update Rental record to 'failed' if we have the ID
+            if (rentalId) {
+                await rentalRepository.updateStatus(rentalId, "failed");
+            }
         }
 
         return { success: true };

@@ -20,11 +20,13 @@ interface StatusConfig {
     label: string;
 }
 
-const statusConfigs: Record<StatusType, StatusConfig> = {
+const statusConfigs: Record<string, StatusConfig> = {
+    hold: { icon: Clock, color: "text-amber-600", bg: "bg-amber-600/10", label: "Payment Progress" },
     pending: { icon: Clock, color: "text-amber-500", bg: "bg-amber-500/10", label: "Pending" },
     active: { icon: Loader2, color: "text-blue-500", bg: "bg-blue-500/10", label: "Active" },
     completed: { icon: CheckCircle2, color: "text-emerald-500", bg: "bg-emerald-500/10", label: "Completed" },
     cancelled: { icon: XCircle, color: "text-red-500", bg: "bg-red-500/10", label: "Cancelled" },
+    failed: { icon: XCircle, color: "text-red-600", bg: "bg-red-600/10", label: "Failed" },
     approved: { icon: CheckCircle2, color: "text-emerald-500", bg: "bg-emerald-500/10", label: "Approved" },
     rejected: { icon: XCircle, color: "text-red-500", bg: "bg-red-500/10", label: "Rejected" },
 };
