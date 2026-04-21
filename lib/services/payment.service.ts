@@ -37,37 +37,39 @@ export class PaymentService {
             const razorpayOrderId = orderEntity.id;
             const rentalId = orderEntity.receipt;
 
-            console.log(`[PaymentService] Processing success. Event: ${payload.event}, Order: ${razorpayOrderId}, Rental: ${rentalId}`);
+            console.log(`[PaymentService] Processing success. Order: ${razorpayOrderId}, Rental: ${rentalId}`);
 
-            const session = await mongoose.startSession();
             try {
-                await session.withTransaction(async () => {
-                    const rental = await rentalRepository.findById(rentalId);
-                    if (!rental) throw new Error("Rental not found");
+                const rental = await rentalRepository.findById(rentalId);
+                if (!rental) {
+                    console.error(`[PaymentService] Error: Rental ${rentalId} not found in database.`);
+                    throw new Error("Rental not found");
+                }
 
-                    // If already processed (not in hold status), skip
-                    if (rental.status !== "hold") {
-                        console.log(`[PaymentService] Rental ${rentalId} status is ${rental.status}. Skipping.`);
-                        return;
+                // If already processed (not in hold status), skip
+                if (rental.status !== "hold") {
+                    console.log(`[PaymentService] Rental ${rentalId} status is already ${rental.status}. Skipping.`);
+                    return { success: true };
+                }
+
+                // We perform updates individually without a transaction to support standalone MongoDB
+                await rentalRepository.updateStatus(rentalId, "pending");
+
+                await paymentRepository.updateStatus(
+                    razorpayOrderId,
+                    "success",
+                    {
+                        rentalId: new mongoose.Types.ObjectId(rentalId),
+                        renterId: rental.renterId,
+                        amount: Math.round(orderEntity.amount / 100),
+                        razorpayPaymentId: payload.payload.payment?.entity?.id
                     }
+                );
 
-                    await rentalRepository.updateStatus(rentalId, "pending", session);
-
-                    await paymentRepository.updateStatus(
-                        razorpayOrderId,
-                        "success",
-                        {
-                            rentalId: new mongoose.Types.ObjectId(rentalId),
-                            renterId: rental.renterId,
-                            amount: Math.round(orderEntity.amount / 100),
-                            razorpayPaymentId: payload.payload.payment?.entity?.id
-                        },
-                        session
-                    );
-                });
                 console.log(`[PaymentService] Successfully recorded SUCCESS for Order: ${razorpayOrderId}`);
-            } finally {
-                await session.endSession();
+            } catch (error: any) {
+                console.error(`[PaymentService] Failed to process payment success: ${error.message}`);
+                throw error;
             }
         } 
         // 3. Handle Payment Failures
