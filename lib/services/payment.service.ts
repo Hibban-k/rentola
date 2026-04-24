@@ -9,6 +9,7 @@ export class PaymentService {
      * Verify a Razorpay Webhook signature and process the order
      */
     async handleWebhook(bodyText: string, signature: string) {
+        console.log(">>> WEBHOOK HIT: Verification starting...");
         await connectToDatabase();
         
         const webhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET;
@@ -116,6 +117,7 @@ export class PaymentService {
             status: 'pending'
         });
     }
+
 }
 
 export const paymentService = new PaymentService();

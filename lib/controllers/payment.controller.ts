@@ -6,6 +6,7 @@ export class PaymentController {
      * Handle POST /api/razorpay/webhook
      */
     async handleWebhook(request: NextRequest) {
+        console.log("[PaymentController] INCOMING WEBHOOK REQUEST");
         try {
             const bodyText = await request.text();
             const signature = request.headers.get("x-razorpay-signature");

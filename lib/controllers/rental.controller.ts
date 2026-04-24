@@ -87,7 +87,7 @@ export class RentalController {
                 const razorpayOptions = {
                     amount: Math.round(rental.totalCost * 100), // convert INR to paise
                     currency: "INR",
-                    receipt: rental._id.toString()
+                    receipt: createdRentalId as any
                 };
                 
                 const rzp = getRazorpay();
