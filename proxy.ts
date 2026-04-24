@@ -20,6 +20,7 @@ const publicRoutes = [
     "/unauthorized",
     "/api/cron",
     "/api/vehicles",
+    "/api/razorpay",
 ];
 
 // Check if the path matches any public route
