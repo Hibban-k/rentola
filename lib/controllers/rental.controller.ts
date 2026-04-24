@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthSession, getProviderSession, getAdminSession } from "@/lib/auth";
 import { rentalService } from "../services/rental.service";
+import { paymentService } from "../services/payment.service";
+import { rentalCreateSchema } from "@/lib/validations/rental.schema";
+import { getRazorpay } from "@/lib/razorpay";
 
 export class RentalController {
     /**
@@ -55,26 +58,81 @@ export class RentalController {
             }
 
             const body = await request.json();
-            const { vehicleId, startDate, endDate } = body;
-
-            if (!vehicleId || !startDate || !endDate) {
-                return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+            
+            // Zod Validation securely sanitizes the payload
+            const validationResult = rentalCreateSchema.safeParse(body);
+            if (!validationResult.success) {
+                return NextResponse.json({ 
+                    error: "Validation failed", 
+                    details: validationResult.error.format() 
+                }, { status: 400 });
             }
 
-            const rental = await rentalService.createRental(user.id!, {
-                vehicleId,
-                startDate,
-                endDate,
-            });
+            const { vehicleId, startDate, endDate } = validationResult.data;
+            let createdRentalId: string | null = null;
+            try {
+                const rental = await rentalService.createRental(user.id!, {
+                    vehicleId,
+                    startDate,
+                    endDate,
+                });
+
+                if (!rental) {
+                    return NextResponse.json({ error: "Failed to allocate rental" }, { status: 500 });
+                }
+
+                createdRentalId = rental._id.toString();
+
+                // Create Razorpay Order asynchronously
+                const razorpayOptions = {
+                    amount: Math.round(rental.totalCost * 100), // convert INR to paise
+                    currency: "INR",
+                    receipt: createdRentalId as any
+                };
+                
+                const rzp = getRazorpay();
+                const order = await rzp.orders.create(razorpayOptions);
+
+                // Initialize Payment record in our database
+                await paymentService.initializePayment({
+                    rentalId: rental._id.toString(),
+                    renterId: user.id!,
+                    amount: rental.totalCost,
+                    razorpayOrderId: order.id
+                });
+
+                return NextResponse.json(
+                    { 
+                        success: true, 
+                        message: "Rental created successfully", 
+                        rental,
+                        razorpayOrderId: order.id 
+                    },
+                    { status: 201 }
+                );
+
+            } catch (error: any) {
+                // CLEANUP: If we created a rental but something failed after (e.g. Razorpay), delete it.
+                if (createdRentalId) {
+                    console.warn(`[RentalController.createRental] Cleaning up zombie rental ${createdRentalId} after failure.`);
+                    await rentalService.deleteRental(createdRentalId);
+                }
+                throw error; // Let the outer catch handle response logic
+            }
+
+        } catch (error: any) {
+            console.error("[RentalController.createRental] Full Error Block:", error);
+            
+            // Extract the most descriptive message possible
+            const displayError = error.description || error.message || "Internal Server Error";
+            const errorType = error.code || error.name || "UnknownError";
 
             return NextResponse.json(
-                { success: true, message: "Rental created successfully", rental },
-                { status: 201 }
-            );
-        } catch (error: any) {
-            console.error("[RentalController.createRental]", error);
-            return NextResponse.json(
-                { error: error.message || "Internal Server Error" },
+                { 
+                    error: displayError,
+                    errorType: errorType,
+                    details: error.details || null
+                },
                 { status: error.status || 500 }
             );
         }

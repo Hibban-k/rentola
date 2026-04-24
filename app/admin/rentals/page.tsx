@@ -63,13 +63,17 @@ export default function AdminRentalsPage() {
 
     const filteredRentals = activeTab === "all"
         ? rentals
-        : rentals.filter((r) => r.status === activeTab);
+        : activeTab === "pending"
+            ? rentals.filter((r) => r.status === "pending" || r.status === "hold")
+            : activeTab === "cancelled"
+                ? rentals.filter((r) => r.status === "cancelled" || r.status === "failed")
+                : rentals.filter((r) => r.status === activeTab);
 
     const tabCounts = {
-        pending: rentals.filter((r) => r.status === "pending").length,
+        pending: rentals.filter((r) => r.status === "pending" || r.status === "hold").length,
         active: rentals.filter((r) => r.status === "active").length,
         completed: rentals.filter((r) => r.status === "completed").length,
-        cancelled: rentals.filter((r) => r.status === "cancelled").length,
+        cancelled: rentals.filter((r) => r.status === "cancelled" || r.status === "failed").length,
     };
 
     // Calculate total revenue (₹9 from renter + ₹9 from provider = ₹18 per rental)

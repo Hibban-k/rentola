@@ -25,7 +25,8 @@ export class VehicleService {
             // Ignore past queries or invalid dates gracefully
             if (!isNaN(start.getTime()) && !isNaN(end.getTime())) {
                 const { rentalRepository } = require("@/lib/repositories/rental.repository");
-                const bookedVehicleIds = await rentalRepository.findOverlappingVehicleIds(start, end);
+                const bookedRentals = await rentalRepository.findOverlappingRentals(start, end);
+                const bookedVehicleIds = bookedRentals.map((r: any) => r.vehicleId.toString());
                 
                 if (bookedVehicleIds.length > 0) {
                     query._id = { $nin: bookedVehicleIds };

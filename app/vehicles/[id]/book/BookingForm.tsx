@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useActionState, useEffect, startTransition } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import Image from "next/image";
@@ -13,10 +13,10 @@ import {
     CheckCircle2
 } from "lucide-react";
 import { Vehicle } from "@/types";
-import { createRentalAction } from "@/lib/actions/rental.actions";
 import CalendarPicker from "@/components/ui/CalendarPicker";
 import PlatformChargeInfo from "@/components/ui/PlatformChargeInfo";
 import ResponsiveImage from "@/components/ui/ResponsiveImage";
+import RazorpayCheckoutButton from "@/components/RazorpayCheckoutButton";
 
 interface BookingFormProps {
     vehicle: Vehicle;
@@ -25,9 +25,7 @@ interface BookingFormProps {
 
 export default function BookingForm({ vehicle, id }: BookingFormProps) {
     const router = useRouter();
-    const { status } = useSession();
-
-    const [state, formAction, isPending] = useActionState(createRentalAction, null);
+    const { data: session, status } = useSession();
 
     const [formData, setFormData] = useState({
         startDate: "",
@@ -35,14 +33,6 @@ export default function BookingForm({ vehicle, id }: BookingFormProps) {
     });
 
     const today = new Date().toISOString().split("T")[0];
-
-    useEffect(() => {
-        if (state?.success) {
-            setTimeout(() => {
-                router.push("/user/rentals");
-            }, 2000);
-        }
-    }, [state, router]);
 
     const calculateDays = () => {
         if (!formData.startDate || !formData.endDate) return 0;
@@ -57,25 +47,11 @@ export default function BookingForm({ vehicle, id }: BookingFormProps) {
     const rentalCost = days * vehicle.pricePerDay;
     const totalCost = days > 0 ? rentalCost + PLATFORM_CHARGE : 0;
 
-    const onSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-
+    const handleContainerClick = (e: React.MouseEvent) => {
         if (status === "unauthenticated") {
+            e.preventDefault();
             router.push(`/auth?callbackUrl=/vehicles/${id}/book`);
-            return;
         }
-
-        if (calculateDays() < 1) {
-            return; // Should be handled by validation/state
-        }
-
-        startTransition(() => {
-            formAction({
-                vehicleId: id,
-                startDate: formData.startDate,
-                endDate: formData.endDate,
-            });
-        });
     };
 
     return (
@@ -102,7 +78,7 @@ export default function BookingForm({ vehicle, id }: BookingFormProps) {
             </div>
 
             {/* Success Message */}
-            {state?.success && (
+            {false && (
                 <div className="flex items-center gap-3 p-6 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 mb-8">
                     <CheckCircle2 className="w-8 h-8 text-emerald-500" />
                     <div>
@@ -113,18 +89,18 @@ export default function BookingForm({ vehicle, id }: BookingFormProps) {
             )}
 
             {/* Booking Form */}
-            {!state?.success && (
-                <div className="bg-card border border-border rounded-2xl p-6">
-                    {(state?.error || (calculateDays() < 1 && formData.endDate !== "")) && (
+            {true && (
+                <div className="bg-card border border-border rounded-2xl p-6" onClick={handleContainerClick}>
+                    {(calculateDays() < 1 && formData.endDate !== "") && (
                         <div className="flex items-center gap-3 p-4 rounded-xl bg-destructive/10 border border-destructive/20 mb-6">
                             <AlertCircle className="w-5 h-5 text-destructive shrink-0" />
                             <p className="text-sm text-destructive">
-                                {state?.error || (calculateDays() < 1 ? "End date must be after start date" : "")}
+                                {calculateDays() < 1 ? "End date must be after start date" : ""}
                             </p>
                         </div>
                     )}
 
-                    <form onSubmit={onSubmit} className="space-y-6">
+                    <div className="space-y-6">
                         {/* Dates */}
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                             <CalendarPicker
@@ -182,20 +158,31 @@ export default function BookingForm({ vehicle, id }: BookingFormProps) {
                         <PlatformChargeInfo className="bg-transparent border-none p-0" />
 
                         {/* Submit */}
-                        <button
-                            type="submit"
-                            disabled={isPending || !vehicle.isAvailable}
-                            className="w-full py-3 px-4 bg-primary text-primary-foreground font-semibold rounded-xl hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-                        >
-                            {isPending ? "Booking..." : "Confirm Booking"}
-                        </button>
+                        {calculateDays() > 0 ? (
+                            <RazorpayCheckoutButton
+                                vehicleId={id}
+                                startDate={formData.startDate}
+                                endDate={formData.endDate}
+                                amount={totalCost}
+                                userName={session?.user?.name || "Customer"}
+                                userEmail={session?.user?.email || "customer@rentola.com"}
+                            />
+                        ) : (
+                            <button
+                                type="button"
+                                disabled={true}
+                                className="w-full py-3 px-4 bg-primary text-primary-foreground font-semibold rounded-xl hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                            >
+                                Select Dates to Book
+                            </button>
+                        )}
 
                         {!vehicle.isAvailable && (
-                            <p className="text-center text-sm text-destructive">
+                            <p className="text-center text-sm text-destructive mt-2">
                                 This vehicle is currently unavailable for booking.
                             </p>
                         )}
-                    </form>
+                    </div>
                 </div>
             )}
         </>

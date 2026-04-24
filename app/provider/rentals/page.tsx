@@ -34,15 +34,19 @@ export default async function ProviderBookingsPage({
     const bookings = JSON.parse(JSON.stringify(rawBookings));
 
     const tabCounts = {
-        pending: bookings.filter((b: any) => b.status === "pending").length,
+        pending: bookings.filter((b: any) => b.status === "pending" || b.status === "hold").length,
         active: bookings.filter((b: any) => b.status === "active").length,
         completed: bookings.filter((b: any) => b.status === "completed").length,
-        cancelled: bookings.filter((b: any) => b.status === "cancelled").length,
+        cancelled: bookings.filter((b: any) => b.status === "cancelled" || b.status === "failed").length,
     };
 
     const filteredBookings = activeTab === "all"
         ? bookings
-        : bookings.filter((b: any) => b.status === activeTab);
+        : activeTab === "pending"
+            ? bookings.filter((b: any) => b.status === "pending" || b.status === "hold")
+            : activeTab === "cancelled"
+                ? bookings.filter((b: any) => b.status === "cancelled" || b.status === "failed")
+                : bookings.filter((b: any) => b.status === activeTab);
 
     return (
         <DashboardLayout role="provider">

@@ -10,7 +10,7 @@ export class RentalRepository {
 
     async findAllRentals(status?: string): Promise<IRental[]> {
         const query: any = {};
-        if (status && ["pending", "approved", "rejected", "active", "completed", "cancelled"].includes(status)) {
+        if (status && ["hold", "pending", "approved", "rejected", "active", "completed", "cancelled", "failed"].includes(status)) {
             query.status = status;
         }
         return Rental.find(query)
@@ -20,27 +20,20 @@ export class RentalRepository {
             .lean();
     }
 
-    async findOverlappingRental(vehicleId: string, start: Date, end: Date): Promise<IRental | null> {
-        return Rental.findOne({
-            vehicleId,
-            status: { $nin: ['cancelled', 'rejected'] },
+    async findOverlappingRentals(start: Date, end: Date, vehicleId?: string, session?: any): Promise<IRental[]> {
+        const query: any = {
+            status: { $in: ['active', 'pending', 'hold'] },
             "rentalPeriod.startDate": { $lt: end },
             "rentalPeriod.endDate": { $gt: start }
-        });
-    }
-
-    async findOverlappingVehicleIds(start: Date, end: Date): Promise<string[]> {
-        const rentals = await Rental.find({
-            status: { $in: ['active', 'approved', 'pending'] },
-            "rentalPeriod.startDate": { $lt: end },
-            "rentalPeriod.endDate": { $gt: start }
-        }).select('vehicleId').lean();
+        };
+        if (vehicleId) query.vehicleId = vehicleId;
         
-        return rentals.map(r => r.vehicleId.toString());
+        return Rental.find(query).session(session);
     }
 
-    async create(data: Partial<IRental>): Promise<IRental> {
-        return Rental.create(data);
+    async create(data: Partial<IRental>, session?: any): Promise<IRental> {
+        const rental = new Rental(data);
+        return rental.save({ session });
     }
 
     async findByVehicleIds(vehicleIds: string[]): Promise<IRental[]> {
@@ -56,12 +49,26 @@ export class RentalRepository {
     async findActiveExpired(now: Date): Promise<IRental[]> {
         return Rental.find({
             status: "active",
-            endDate: { $lt: now }
+            "rentalPeriod.endDate": { $lt: now }
         });
     }
 
-    async updateStatus(id: string, status: string): Promise<IRental | null> {
-        return Rental.findByIdAndUpdate(id, { status }, { new: true });
+    async updateStatus(id: string, status: string, session?: any): Promise<IRental | null> {
+        const update: any = { 
+            $set: { status } 
+        };
+        
+        // Only clear the TTL if the booking is successfully confirmed or active
+        // This ensures abandoned (hold) and unsuccessful (failed) bookings are still cleaned up
+        if (["pending", "active", "completed"].includes(status)) {
+            update.$unset = { expiresAt: 1 };
+        }
+        
+        return Rental.findByIdAndUpdate(id, update, { new: true, session });
+    }
+
+    async delete(id: string, session?: any): Promise<void> {
+        await Rental.findByIdAndDelete(id, { session });
     }
 }
 

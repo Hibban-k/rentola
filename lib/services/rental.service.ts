@@ -4,6 +4,7 @@ import { getVehicleWithOwnership } from "@/lib/rentalRules/permissions";
 import { canCreateRental } from "@/lib/rentalRules/guards";
 import { connectToDatabase } from "@/lib/db";
 import { IRental } from "@/models/Rental";
+import mongoose from "mongoose";
 
 export class RentalService {
     async getUserRentals(userId: string) {
@@ -30,49 +31,72 @@ export class RentalService {
 
     async createRental(userId: string, payload: { vehicleId: string; startDate: string; endDate: string }) {
         await connectToDatabase();
+        if (mongoose.connection.readyState !== 1) {
+            throw new Error("Database is not ready for transactions. Please try again in a moment.");
+        }
         const { vehicleId, startDate, endDate } = payload;
+        
+        const session = await mongoose.startSession();
+        let createdRental: any;
 
-        // 1. Ownership & Permission check
-        const { vehicle, isOwner } = await getVehicleWithOwnership(vehicleId, userId);
-        if (!vehicle) {
-            throw { status: 404, message: "Vehicle not found" };
+        try {
+            await session.withTransaction(async () => {
+                // 1. Ownership & Permission check
+                const { vehicle, isOwner } = await getVehicleWithOwnership(vehicleId, userId);
+                if (!vehicle) {
+                    throw { status: 404, message: "Vehicle not found" };
+                }
+
+                const rentalCheck = canCreateRental(isOwner);
+                if (!rentalCheck.allowed) {
+                    throw { status: 400, message: rentalCheck.reason };
+                }
+
+                // 2. Availability check
+                if (!vehicle.isAvailable) {
+                    throw { status: 400, message: "Vehicle is currently unavailable for rent" };
+                }
+
+                const start = new Date(startDate);
+                const end = new Date(endDate);
+
+                // 3. Double booking check
+                const overlappingRentals = await rentalRepository.findOverlappingRentals(start, end, vehicleId, session);
+
+                for (const overlapping of overlappingRentals) {
+                    if (["hold", "pending"].includes(overlapping.status) && overlapping.renterId.toString() === userId) {
+                        console.warn(`[RentalService.createRental] User ${userId} is retrying. Cleaning up old record ${overlapping._id}`);
+                        await rentalRepository.delete((overlapping._id as any).toString(), session);
+                    } else {
+                        throw { status: 409, message: "Vehicle is already booked for these dates" };
+                    }
+                }
+
+                // 4. Calculate Total Cost
+                const diffTime = Math.abs(end.getTime() - start.getTime());
+                const days = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                const platformFee = 9;
+                const totalCost = (days * vehicle.pricePerDay) + platformFee;
+
+                // 5. Create the rental
+                const fiveMinutesFromNow = new Date(Date.now() + 5 * 60 * 1000);
+                
+                createdRental = await rentalRepository.create({
+                    vehicleId: vehicleId as any,
+                    renterId: userId as any,
+                    rentalPeriod: {
+                        startDate: start,
+                        endDate: end,
+                    },
+                    totalCost,
+                    status: 'hold',
+                    expiresAt: fiveMinutesFromNow,
+                }, session);
+            });
+            return createdRental;
+        } finally {
+            await session.endSession();
         }
-
-        const rentalCheck = canCreateRental(isOwner);
-        if (!rentalCheck.allowed) {
-            throw { status: 400, message: rentalCheck.reason };
-        }
-
-        // 2. Availability check
-        if (!vehicle.isAvailable) {
-            throw { status: 400, message: "Vehicle is currently unavailable for rent" };
-        }
-
-        const start = new Date(startDate);
-        const end = new Date(endDate);
-
-        // 3. Double booking check
-        const existingRental = await rentalRepository.findOverlappingRental(vehicleId, start, end);
-        if (existingRental) {
-            throw { status: 409, message: "Vehicle is already booked for these dates" };
-        }
-
-        // 4. Calculate Total Cost
-        const diffTime = Math.abs(end.getTime() - start.getTime());
-        const days = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-        const platformFee = 9;
-        const totalCost = (days * vehicle.pricePerDay) + platformFee;
-
-        // 5. Create the rental
-        return rentalRepository.create({
-            vehicleId: vehicleId as any,
-            renterId: userId as any,
-            rentalPeriod: {
-                startDate: start,
-                endDate: end,
-            },
-            totalCost,
-        });
     }
 
     async getRentalById(id: string) {
@@ -93,6 +117,11 @@ export class RentalService {
         // Repository handles the validation checks via its updateStatus, 
         // but we could also add domain rules here if needed in the future.
         return rentalRepository.updateStatus(id, status);
+    }
+
+    async deleteRental(id: string) {
+        await connectToDatabase();
+        return rentalRepository.delete(id);
     }
 
     async completeExpiredRentals() {

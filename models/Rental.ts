@@ -8,7 +8,8 @@ export interface IRental extends Document {
         endDate: Date;
     };
     totalCost: number;
-    status: 'pending' | 'active' | 'completed' | 'cancelled';
+    status: 'hold' | 'pending' | 'active' | 'completed' | 'cancelled' | 'failed';
+    expiresAt?: Date;
     createdAt: Date;
     updatedAt: Date;
 
@@ -22,7 +23,12 @@ const RentalSchema: Schema<IRental> = new Schema(
             endDate: { type: Date, required: true }
         },
         totalCost: { type: Number, default: 0 },
-        status: { type: String, enum: ['pending', 'active', 'completed', 'cancelled'], default: 'pending' },
+        status: { 
+            type: String, 
+            enum: ['hold', 'pending', 'active', 'completed', 'cancelled', 'failed'], 
+            default: 'hold' 
+        },
+        expiresAt: { type: Date, expires: 0 }
     },
     { timestamps: true }
 );

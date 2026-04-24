@@ -2,7 +2,7 @@
  * Handles all state machine transitions for rentals and providers.
  */
 
-export const RENTAL_STATUSES = ["pending", "active", "completed", "cancelled"] as const;
+export const RENTAL_STATUSES = ["hold", "pending", "active", "completed", "cancelled", "failed"] as const;
 export type RentalStatus = (typeof RENTAL_STATUSES)[number];
 
 export const PROVIDER_STATUSES = ["pending", "approved", "rejected"] as const;
@@ -16,10 +16,12 @@ export function canChangeRentalStatus(
     next: RentalStatus | string
 ): boolean {
     const allowed: Record<string, string[]> = {
+        hold: ["pending", "failed", "cancelled"],
         pending: ["active", "cancelled"],
         active: ["completed", "cancelled"],
         completed: [],
         cancelled: [],
+        failed: ["hold", "cancelled"], // Allow retry from failed or explicit cancel
     };
 
     return allowed[current]?.includes(next) ?? false;

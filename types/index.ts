@@ -1,6 +1,6 @@
 export type VehicleType = "car" | "bike";
 export type ProviderStatus = "pending" | "approved" | "rejected";
-export type RentalStatus = "pending" | "active" | "completed" | "cancelled";
+export type RentalStatus = "hold" | "pending" | "active" | "completed" | "cancelled" | "failed";
 export type UserRole = "user" | "provider" | "admin";
 
 export interface VehicleImage {
@@ -35,6 +35,7 @@ export interface VehicleFilters {
     limit?: number;
     startDate?: string;
     endDate?: string;
+    
 }
 
 export interface CreateVehiclePayload {
@@ -67,6 +68,7 @@ export interface Rental {
     };
     totalCost: number;
     status: RentalStatus;
+    expiresAt?: string; // For TTL cleanup of 'hold' rentals
     createdAt: string;
     updatedAt?: string;
 }
