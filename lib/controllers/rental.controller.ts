@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAuthSession, getProviderSession, getAdminSession } from "@/lib/auth";
+import { getAuthSession, getProviderSession, getAdminSession, getCronSession, unauthorizedResponse } from "@/lib/auth";
 import { rentalService } from "../services/rental.service";
 import { paymentService } from "../services/payment.service";
 import { rentalCreateSchema } from "@/lib/validations/rental.schema";
@@ -157,17 +157,41 @@ export class RentalController {
     }
 
     /**
+     * Handle PATCH /api/provider/rentals/[id]
+     */
+    async updateProviderRentalStatus(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+        try {
+            const user = await getProviderSession();
+            const { id } = await params;
+            const { status } = await request.json();
+
+            const updatedRental = await rentalService.updateProviderRentalStatus(id, status, user.id!);
+            return NextResponse.json(updatedRental);
+        } catch (error: any) {
+            console.error("[RentalController.updateProviderRentalStatus]", error);
+            return NextResponse.json(
+                { error: error.message || "Internal Server Error" },
+                { status: error.status || 500 }
+            );
+        }
+    }
+
+    /**
      * Handle POST /api/cron/complete-rentals
      */
     async completeExpiredRentals(request: NextRequest) {
         try {
+           const cron = await getCronSession(request);
+           if (!cron) {
+            return unauthorizedResponse("Invalid Cron secret")
+           }
             const result = await rentalService.completeExpiredRentals();
             return NextResponse.json(result, { status: 200 });
         } catch (error: any) {
             console.error("[RentalController.completeExpiredRentals]", error);
             return NextResponse.json(
                 { error: "Internal Server Error" },
-                { status: 500 }
+                { status: error.status || 500 }
             );
         }
     }

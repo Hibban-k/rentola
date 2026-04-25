@@ -2,6 +2,7 @@ import { rentalRepository } from "../repositories/rental.repository";
 import { vehicleRepository } from "../repositories/vehicle.repository";
 import { getVehicleWithOwnership } from "@/lib/rentalRules/permissions";
 import { canCreateRental } from "@/lib/rentalRules/guards";
+import { canChangeRentalStatus } from "@/lib/rentalRules/lifecycle";
 import { connectToDatabase } from "@/lib/db";
 import { IRental } from "@/models/Rental";
 import mongoose from "mongoose";
@@ -101,10 +102,7 @@ export class RentalService {
 
     async getRentalById(id: string) {
         await connectToDatabase();
-        const rental = await require("@/models/Rental").default.findById(id)
-            .populate("vehicleId", "name vehicleImageUrl")
-            .populate("renterId", "name email")
-            .lean();
+        const rental = await rentalRepository.findById(id);
             
         if (!rental) {
             throw { status: 404, message: "Rental not found" };
@@ -139,6 +137,28 @@ export class RentalService {
             processed: expiredRentals.length,
             success: results.filter(r => r !== null).length
         };
+    }
+
+    async updateProviderRentalStatus(id: string, status: IRental["status"], providerId: string) {
+        await connectToDatabase();
+        
+        const rental = await rentalRepository.findById(id);
+        if (!rental) {
+            throw { status: 404, message: "Rental not found" };
+        }
+
+        // Check if provider owns the vehicle being rented
+        const vehicle = await vehicleRepository.findById((rental.vehicleId as any)._id || rental.vehicleId);
+        if (!vehicle || vehicle.ownerId.toString() !== providerId) {
+            throw { status: 403, message: "Forbidden: Ownership mismatch" };
+        }
+
+        // Validate state transition
+        if (!canChangeRentalStatus(rental.status, status)) {
+            throw { status: 400, message: `Invalid status transition from ${rental.status} to ${status}` };
+        }
+
+        return rentalRepository.updateStatus(id, status);
     }
 }
 

@@ -6,15 +6,16 @@ export interface IUser extends Document {
     email: string;
     password: string;
     role: 'user' | 'provider' | 'admin';
+    providerStatus: 'pending' | 'approved' | 'rejected';
+    isVerified: boolean;
+    passwordResetToken?: string;
     imageUrl?: string;
     licenseImageUrl?: string;
-    providerStatus: 'pending' | 'approved' | 'rejected';
     createdAt: Date;
     updatedAt: Date;
     documents?: {
         type: String;
         url: string;
-
     }[];
     comparePassword(candidatePassword: string): Promise<boolean>;
 }
@@ -28,8 +29,9 @@ const UserSchema: Schema<IUser> = new Schema(
             type: String,
             enum: ['pending', 'approved', 'rejected'],
             default: 'pending'
-
         },
+        isVerified: { type: Boolean, default: false },
+        passwordResetToken: { type: String },
         imageUrl: { type: String },
         licenseImageUrl: { type: String },
         documents: [

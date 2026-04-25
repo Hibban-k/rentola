@@ -1,5 +1,5 @@
 import { getServerSession } from "next-auth";
-import { NextResponse } from "next/server";
+import { NextResponse, NextRequest } from "next/server";
 import { authOptions } from "./authOptions";
 
 export interface SessionUser {
@@ -68,6 +68,18 @@ export async function getAdminSession(): Promise<SessionUser> {
     }
 
     return user;
+}
+
+export async function getCronSession(request: NextRequest): Promise<boolean> {
+    const authHeader = request.headers.get("Authorization");
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+        throw new Error("Unauthorized");
+    }
+    const token = authHeader.split(" ")[1];
+    if (token !== process.env.CRON_SECRET) {
+        throw new Error("Unauthorized");
+    }
+    return true;
 }
 
 /**

@@ -1,7 +1,7 @@
 import { vehicleRepository } from "../repositories/vehicle.repository";
+import { rentalRepository } from "../repositories/rental.repository";
 import { connectToDatabase } from "@/lib/db";
 import { CreateVehiclePayload, VehicleFilters } from "@/types";
-import Vehicle from "@/models/Vehicle";
 
 export class VehicleService {
     async getAllVehicles(filters: VehicleFilters) {
@@ -24,7 +24,6 @@ export class VehicleService {
             const end = new Date(filters.endDate);
             // Ignore past queries or invalid dates gracefully
             if (!isNaN(start.getTime()) && !isNaN(end.getTime())) {
-                const { rentalRepository } = require("@/lib/repositories/rental.repository");
                 const bookedRentals = await rentalRepository.findOverlappingRentals(start, end);
                 const bookedVehicleIds = bookedRentals.map((r: any) => r.vehicleId.toString());
                 
@@ -34,7 +33,7 @@ export class VehicleService {
             }
         }
 
-        return Vehicle.find(query).sort({ createdAt: -1 });
+        return vehicleRepository.findAll(query);
     }
 
     async getVehicleById(id: string) {
@@ -53,7 +52,7 @@ export class VehicleService {
 
     async createVehicle(ownerId: string, payload: CreateVehiclePayload) {
         await connectToDatabase();
-        return Vehicle.create({
+        return vehicleRepository.create({
             ...payload,
             ownerId,
         });
@@ -71,7 +70,7 @@ export class VehicleService {
             throw { status: 403, message: "Unauthorized to update this vehicle" };
         }
 
-        return Vehicle.findByIdAndUpdate(id, updateData, { new: true });
+        return vehicleRepository.update(id, updateData);
     }
 
     async deleteVehicle(id: string, ownerId: string) {
@@ -86,7 +85,7 @@ export class VehicleService {
             throw { status: 403, message: "Unauthorized to delete this vehicle" };
         }
 
-        return Vehicle.findByIdAndDelete(id);
+        return vehicleRepository.delete(id);
     }
 }
 
