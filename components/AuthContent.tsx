@@ -402,12 +402,13 @@ export function AuthContent() {
                                         <button
                                             type="button"
                                             onClick={() => { setMode("forgot-password"); setError(null); setSuccessMessage(null); }}
-                                            className="text-xs text-primary hover:underline font-medium"
+                                            className="text-xs text-blue-500 hover:text-blue-400 hover:underline font-medium"
                                         >
                                             Forgot password?
                                         </button>
                                     )}
                                 </div>
+
                                 <div className="relative">
                                     <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                                     <input
