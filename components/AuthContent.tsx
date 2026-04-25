@@ -4,9 +4,9 @@ import { useState, FormEvent, useRef, ChangeEvent, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
 import { Mail, Lock, User, Shield, AlertCircle, Loader2, Upload, FileText, X, Eye, EyeOff } from "lucide-react";
-import { signupAction } from "@/lib/actions/auth.actions";
+import { signupAction, verifyEmailAction, resendOtpAction, forgotPasswordAction, verifyResetOtpAction, resetPasswordAction } from "@/lib/actions/auth.actions";
 
-type AuthMode = "signin" | "signup";
+type AuthMode = "signin" | "signup" | "verify" | "forgot-password" | "reset-password";
 type UserRole = "user" | "provider";
 
 interface UploadedFile {
@@ -35,6 +35,10 @@ export function AuthContent() {
         password: "",
         confirmPassword: "",
     });
+
+    const [otp, setOtp] = useState("");
+    const [resetToken, setResetToken] = useState("");
+    const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
     // Check for mode and role in URL params (e.g., /auth?mode=signup&role=provider)
     useEffect(() => {
@@ -169,7 +173,6 @@ export function AuthContent() {
         }
 
         setIsLoading(true);
-        setMode("signin");
 
         try {
             if (mode === "signin") {
@@ -195,7 +198,7 @@ export function AuthContent() {
                         router.push("/");
                     }
                 }
-            } else {
+            } else if (mode === "signup") {
                 // Prepare documents for upload
                 const documents = await Promise.all(
                     uploadedFiles.map(async (f) => ({
@@ -213,29 +216,74 @@ export function AuthContent() {
                     licenseImageUrl: licensePhoto ? await fileToBase64(licensePhoto.file) : undefined,
                 });
 
-                if (!resultAction.success) {
+                if (resultAction.success) {
+                    setSuccessMessage("Account created! Please enter the OTP sent to your email.");
+                    setMode("verify");
+                } else {
                     throw new Error(resultAction.error);
                 }
-
-                if (resultAction.data) {
-                    // After signup, sign in with NextAuth
-                    const result = await signIn("credentials", {
-                        email: formData.email,
-                        password: formData.password,
-                        redirect: false,
-                    });
-
-                    if (result?.ok) {
-                        if (role === "provider") {
-                            router.push("/provider/pending");
-                        } else {
-                            router.push("/vehicles");
-                        }
+            } else if (mode === "verify") {
+                const result = await verifyEmailAction(formData.email, otp);
+                if (result.success) {
+                    setSuccessMessage("Email verified! You can now sign in.");
+                    setMode("signin");
+                    setOtp("");
+                } else {
+                    throw new Error(result.error);
+                }
+            } else if (mode === "forgot-password") {
+                const result = await forgotPasswordAction(formData.email);
+                if (result.success) {
+                    setSuccessMessage("OTP sent! Please check your email.");
+                    setMode("reset-password");
+                } else {
+                    throw new Error(result.error);
+                }
+            } else if (mode === "reset-password") {
+                if (!resetToken) {
+                    // Step 1: Verify OTP
+                    const result = await verifyResetOtpAction(formData.email, otp);
+                    if (result.success) {
+                        setResetToken(result.data?.resetToken || "");
+                        setSuccessMessage("OTP verified! Please enter your new password.");
+                        setOtp("");
+                    } else {
+                        throw new Error(result.error);
+                    }
+                } else {
+                    // Step 2: Reset Password
+                    if (formData.password !== formData.confirmPassword) {
+                        throw new Error("Passwords do not match");
+                    }
+                    const result = await resetPasswordAction(formData.email, resetToken, formData.password);
+                    if (result.success) {
+                        setSuccessMessage("Password reset successfully! Please sign in.");
+                        setMode("signin");
+                        setResetToken("");
+                    } else {
+                        throw new Error(result.error);
                     }
                 }
             }
         } catch (err) {
             setError(err instanceof Error ? err.message : "Something went wrong");
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleResendOtp = async () => {
+        setIsLoading(true);
+        setError(null);
+        try {
+            const result = await resendOtpAction(formData.email);
+            if (result.success) {
+                setSuccessMessage("A new OTP has been sent to your email.");
+            } else {
+                throw new Error(result.error);
+            }
+        } catch (err) {
+            setError(err instanceof Error ? err.message : "Failed to resend OTP");
         } finally {
             setIsLoading(false);
         }
@@ -247,37 +295,44 @@ export function AuthContent() {
                 {/* Header */}
                 <div className="text-center mb-8">
                     <h1 className="text-3xl font-bold mb-2">
-                        {mode === "signin" ? "Welcome back" : "Create account"}
+                        {mode === "signin" && "Welcome back"}
+                        {mode === "signup" && "Create account"}
+                        {mode === "verify" && "Verify Email"}
+                        {mode === "forgot-password" && "Forgot Password"}
+                        {mode === "reset-password" && "Reset Password"}
                     </h1>
                     <p className="text-muted-foreground">
-                        {mode === "signin"
-                            ? "Sign in to continue to Rentola"
-                            : "Join Rentola to rent or list vehicles"
-                        }
+                        {mode === "signin" && "Sign in to continue to Rentola"}
+                        {mode === "signup" && "Join Rentola to rent or list vehicles"}
+                        {mode === "verify" && `We sent an OTP to ${formData.email}`}
+                        {mode === "forgot-password" && "Enter your email to receive a reset code"}
+                        {mode === "reset-password" && "Enter the code and your new password"}
                     </p>
                 </div>
 
-                {/* Mode Tabs */}
-                <div className="flex gap-2 p-1 bg-muted rounded-xl mb-6">
-                    <button
-                        onClick={() => { setMode("signin"); setError(null); }}
-                        className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-colors ${mode === "signin"
-                            ? "bg-background shadow-sm text-foreground"
-                            : "text-muted-foreground hover:text-foreground"
-                            }`}
-                    >
-                        Sign In
-                    </button>
-                    <button
-                        onClick={() => { setMode("signup"); setError(null); }}
-                        className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-colors ${mode === "signup"
-                            ? "bg-background shadow-sm text-foreground"
-                            : "text-muted-foreground hover:text-foreground"
-                            }`}
-                    >
-                        Sign Up
-                    </button>
-                </div>
+                {/* Mode Tabs (only for signin/signup) */}
+                {(mode === "signin" || mode === "signup") && (
+                    <div className="flex gap-2 p-1 bg-muted rounded-xl mb-6">
+                        <button
+                            onClick={() => { setMode("signin"); setError(null); setSuccessMessage(null); }}
+                            className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-colors ${mode === "signin"
+                                ? "bg-background shadow-sm text-foreground"
+                                : "text-muted-foreground hover:text-foreground"
+                                }`}
+                        >
+                            Sign In
+                        </button>
+                        <button
+                            onClick={() => { setMode("signup"); setError(null); setSuccessMessage(null); }}
+                            className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-colors ${mode === "signup"
+                                ? "bg-background shadow-sm text-foreground"
+                                : "text-muted-foreground hover:text-foreground"
+                                }`}
+                        >
+                            Sign Up
+                        </button>
+                    </div>
+                )}
 
                 {/* Form */}
                 <div className="bg-card border border-border rounded-2xl p-6">
@@ -285,6 +340,13 @@ export function AuthContent() {
                         <div className="flex items-center gap-3 p-4 rounded-xl bg-destructive/10 border border-destructive/20 mb-6">
                             <AlertCircle className="w-5 h-5 text-destructive shrink-0" />
                             <p className="text-sm text-destructive">{error}</p>
+                        </div>
+                    )}
+
+                    {successMessage && (
+                        <div className="flex items-center gap-3 p-4 rounded-xl bg-primary/10 border border-primary/20 mb-6">
+                            <Shield className="w-5 h-5 text-primary shrink-0" />
+                            <p className="text-sm text-primary">{successMessage}</p>
                         </div>
                     )}
 
@@ -330,30 +392,75 @@ export function AuthContent() {
                         </div>
 
                         {/* Password */}
-                        <div>
-                            <label htmlFor="password" className="block text-sm font-medium mb-1.5">
-                                Password
-                            </label>
-                            <div className="relative">
-                                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                                <input
-                                    id="password"
-                                    type={showPassword ? "text" : "password"}
-                                    required
-                                    value={formData.password}
-                                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                                    className="w-full pl-10 pr-12 py-3 rounded-xl border border-input bg-background focus:outline-none focus:ring-2 focus:ring-ring"
-                                    placeholder="••••••••"
-                                />
-                                <button
-                                    type="button"
-                                    onClick={() => setShowPassword(!showPassword)}
-                                    className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 hover:bg-muted rounded-lg transition-colors text-muted-foreground"
-                                >
-                                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                                </button>
+                        {(mode === "signin" || mode === "signup" || (mode === "reset-password" && resetToken)) && (
+                            <div>
+                                <div className="flex items-center justify-between mb-1.5">
+                                    <label htmlFor="password" className="block text-sm font-medium">
+                                        {mode === "reset-password" ? "New Password" : "Password"}
+                                    </label>
+                                    {mode === "signin" && (
+                                        <button
+                                            type="button"
+                                            onClick={() => { setMode("forgot-password"); setError(null); setSuccessMessage(null); }}
+                                            className="text-xs text-primary hover:underline font-medium"
+                                        >
+                                            Forgot password?
+                                        </button>
+                                    )}
+                                </div>
+                                <div className="relative">
+                                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                                    <input
+                                        id="password"
+                                        type={showPassword ? "text" : "password"}
+                                        required
+                                        value={formData.password}
+                                        onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                                        className="w-full pl-10 pr-12 py-3 rounded-xl border border-input bg-background focus:outline-none focus:ring-2 focus:ring-ring"
+                                        placeholder="••••••••"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowPassword(!showPassword)}
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 hover:bg-muted rounded-lg transition-colors text-muted-foreground"
+                                    >
+                                        {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                                    </button>
+                                </div>
                             </div>
-                        </div>
+                        )}
+
+                        {/* OTP Input (verify or reset-password without token) */}
+                        {(mode === "verify" || (mode === "reset-password" && !resetToken)) && (
+                            <div>
+                                <label htmlFor="otp" className="block text-sm font-medium mb-1.5">
+                                    Enter 6-digit OTP
+                                </label>
+                                <div className="relative">
+                                    <Shield className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                                    <input
+                                        id="otp"
+                                        type="text"
+                                        required
+                                        maxLength={6}
+                                        value={otp}
+                                        onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
+                                        className="w-full pl-10 pr-4 py-3 rounded-xl border border-input bg-background focus:outline-none focus:ring-2 focus:ring-ring tracking-[0.5em] font-mono text-center text-xl"
+                                        placeholder="000000"
+                                    />
+                                </div>
+                                <div className="mt-2 text-right">
+                                    <button
+                                        type="button"
+                                        onClick={handleResendOtp}
+                                        disabled={isLoading}
+                                        className="text-xs text-primary hover:underline font-medium disabled:opacity-50"
+                                    >
+                                        Resend code?
+                                    </button>
+                                </div>
+                            </div>
+                        )}
 
                         {/* Confirm Password (signup only) */}
                         {mode === "signup" && (
@@ -553,32 +660,43 @@ export function AuthContent() {
                             className="w-full py-3 px-4 bg-primary text-primary-foreground font-semibold rounded-xl hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2"
                         >
                             {isLoading && <Loader2 className="w-4 h-4 animate-spin" />}
-                            {mode === "signin" ? "Sign In" : "Create Account"}
+                            {mode === "signin" && "Sign In"}
+                            {mode === "signup" && "Create Account"}
+                            {mode === "verify" && "Verify Email"}
+                            {mode === "forgot-password" && "Send Reset Code"}
+                            {mode === "reset-password" && (resetToken ? "Update Password" : "Verify Code")}
                         </button>
                     </form>
 
-                    {/* Footer */}
                     <div className="mt-6 text-center text-sm text-muted-foreground">
                         {mode === "signin" ? (
                             <p>
                                 Don&apos;t have an account?{" "}
                                 <button
-                                    onClick={() => { setMode("signup"); setError(null); }}
+                                    onClick={() => { setMode("signup"); setError(null); setSuccessMessage(null); }}
                                     className="text-primary hover:underline font-medium"
                                 >
                                     Sign up
                                 </button>
                             </p>
-                        ) : (
+                        ) : mode === "signup" ? (
                             <p>
                                 Already have an account?{" "}
                                 <button
-                                    onClick={() => { setMode("signin"); setError(null); }}
+                                    onClick={() => { setMode("signin"); setError(null); setSuccessMessage(null); }}
                                     className="text-primary hover:underline font-medium"
                                 >
                                     Sign in
                                 </button>
                             </p>
+                        ) : (
+                            <button
+                                onClick={() => { setMode("signin"); setError(null); setSuccessMessage(null); }}
+                                className="text-primary hover:underline font-medium flex items-center justify-center gap-2 mx-auto"
+                            >
+                                <X className="w-4 h-4" />
+                                Back to sign in
+                            </button>
                         )}
                     </div>
                 </div>
